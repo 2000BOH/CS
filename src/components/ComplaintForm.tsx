@@ -87,6 +87,7 @@ export function ComplaintForm({ onSubmit, selectedRoom, onRoomChange, roomAccomm
       내용: formData.내용 || '(내용 없음)',
       조치사항: formData.조치사항,
       상태: formData.상태,
+      완료일시: formData.상태 === '완료' ? new Date().toISOString() : undefined,
       사진: formData.사진,
       연락일: formData.연락일?.toISOString(),
       조치일: formData.조치일?.toISOString()
@@ -234,6 +235,27 @@ export function ComplaintForm({ onSubmit, selectedRoom, onRoomChange, roomAccomm
               autoComplete="off"
               className="w-full px-3 py-2 text-sm text-gray-900 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
+
+            {/* 상태 선택 */}
+            <div className="mt-3">
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                상태
+              </label>
+              <select
+                value={formData.상태}
+                onChange={(e) =>
+                  setFormData(prev => ({ ...prev, 상태: e.target.value as typeof prev.상태 }))
+                }
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="접수">접수</option>
+                <option value="영선팀">영선팀</option>
+                <option value="진행중">진행중</option>
+                <option value="부서이관">부서이관</option>
+                <option value="외부업체">외부업체</option>
+                <option value="완료">완료</option>
+              </select>
+            </div>
             
             <div className="grid grid-cols-2 gap-3 mt-3">
               <div>

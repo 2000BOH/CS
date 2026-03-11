@@ -46,6 +46,7 @@ export interface Complaint {
   계약서파일?: string; // 계약서 PDF 파일 (base64)
   계약서파일명?: string; // 계약서 파일명
   숙박형태?: string; // 숙박형태
+  도어락비번?: string; // 객실정비 페이지 도어락 비밀번호
   담당자확인_M01?: boolean; // M01 페이지 담당자 확인
   담당자확인_M02?: boolean; // M02 페이지 담당자 확인
   담당자확인_M03?: boolean; // M03 페이지 담당자 확인

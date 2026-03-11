@@ -44,7 +44,7 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
       });
 
       if (matchingRoom) {
-        const 기준날짜 = complaint.처리일 || complaint.이사일 || complaint.청소예정일 || complaint.조치일 || complaint.등록일시;
+        const 기준날짜 = complaint.이사일 || complaint.처리일 || complaint.조치일 || complaint.등록일시;
         
         result.push({
           id: complaint.id,
@@ -91,7 +91,11 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
   }, [tasks, dateFilter]);
 
   const handleManagerConfirm = (task: TaskItem) => {
-    onUpdate(task.id, { 담당자확인_M03: !task.담당자확인 });
+    const nowConfirmed = !task.담당자확인;
+    onUpdate(task.id, {
+      담당자확인_M03: nowConfirmed,
+      ...(nowConfirmed ? { 상태: '진행중' } : {}),
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -110,6 +114,8 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
     }
   };
 
+  const noTypeRooms = rooms.filter(r => !r.숙박형태 || r.숙박형태.trim() === '');
+
   return (
     <div className="space-y-4">
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-6 text-white">
@@ -119,6 +125,12 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
         </div>
         <p className="text-green-100 text-sm">기타 객실 업무 체크리스트</p>
       </div>
+      {noTypeRooms.length > 0 && (
+        <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-300 rounded-lg px-4 py-3 text-yellow-800 text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 text-yellow-500" />
+          <span>숙박형태가 미설정된 객실이 <strong>{noTypeRooms.length}개</strong> 있습니다. 해당 객실은 M01~M03 목록에 표시되지 않습니다. (입력 페이지에서 숙박형태를 설정해 주세요)</span>
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center gap-2 flex-wrap">

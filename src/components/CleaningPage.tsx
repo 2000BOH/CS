@@ -122,12 +122,17 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
     { key: '우선처리', label: '우선처리', count: cleaningComplaints.filter(c => c.우선처리).length },
   ];
 
-  // 완료 처리
+  // 완료 처리 — 상태='완료' + 완료일시 세팅 + 퇴실상태가 '퇴실'이면 자동으로 '완료'로 올림
   const handleComplete = (id: string) => {
-    onUpdate(id, { 
+    const target = complaints.find(c => c.id === id);
+    const updates: Parameters<typeof onUpdate>[1] = {
       상태: '완료',
-      완료일시: new Date().toISOString()
-    });
+      완료일시: new Date().toISOString(),
+    };
+    if (target?.퇴실상태 === '퇴실') {
+      updates.퇴실상태 = '완료';
+    }
+    onUpdate(id, updates);
   };
 
   // 우선처리 토글
@@ -449,21 +454,47 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                     </Popover>
                   </div>
 
-                  {/* 객실정비 조치 */}
+                  {/* 비밀번호 + 객실정비 조치 (좁은 비번 / 넓은 조치사항) */}
                   <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">객실정비 조치</label>
-                    <textarea
-                      key={`action-${complaint.id}`}
-                      defaultValue={complaint.객실정비조치 || ''}
-                      onBlur={(e) => {
-                        if (e.target.value !== complaint.객실정비조치) {
-                          onUpdate(complaint.id, { 객실정비조치: e.target.value });
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
-                      rows={2}
-                      placeholder="객실정비 조치사항을 입력하세요"
-                    />
+                    <label className="text-xs font-medium text-gray-600 block mb-1">
+                      비밀번호 / 객실정비 조치
+                    </label>
+                    <div className="flex gap-2 items-start">
+                      {/* 상단 제목 */}
+                      <div className="w-2/12 min-w-[60px] text-center text-[11px] text-gray-500">
+                        비번
+                      </div>
+                      <div className="flex-1 text-center text-[11px] text-gray-500">
+                        조치사항
+                      </div>
+                    </div>
+                    <div className="flex gap-2 items-start mt-1">
+                      {/* 비밀번호 (도어락비번 필드 사용) */}
+                      <input
+                        type="text"
+                        defaultValue={complaint.도어락비번 || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (complaint.도어락비번 || '')) {
+                            onUpdate(complaint.id, { 도어락비번: e.target.value });
+                          }
+                        }}
+                        className="w-2/12 min-w-[60px] px-2 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 text-center"
+                        placeholder="비밀번호"
+                      />
+                      {/* 조치사항 (객실정비조치 필드를 사용) */}
+                      <textarea
+                        key={`action-${complaint.id}`}
+                        defaultValue={complaint.객실정비조치 || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (complaint.객실정비조치 || '')) {
+                            onUpdate(complaint.id, { 객실정비조치: e.target.value });
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 resize-none"
+                        rows={3}
+                        placeholder="객실정비 조치사항을 입력하세요"
+                      />
+                    </div>
                   </div>
 
                   {/* 사진 */}
@@ -517,6 +548,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap w-12">호실</th>
                     <th className="px-1 py-1 text-center font-semibold whitespace-nowrap w-16">상태</th>
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap w-20">청소예정일</th>
+                    <th className="px-1 py-1 text-center font-semibold whitespace-nowrap w-16">비번</th>
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap">조치사항</th>
                   </tr>
                 </thead>
@@ -638,18 +670,31 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                       </Popover>
                     </td>
                     
-                    <td className="px-2 py-1" style={{ minWidth: '300px' }}>
-                      <textarea
+                    <td className="px-2 py-1 whitespace-nowrap">
+                      {/* 비번 (도어락비번 필드 사용) */}
+                      <input
+                        type="text"
+                        defaultValue={complaint.도어락비번 || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (complaint.도어락비번 || '')) {
+                            onUpdate(complaint.id, { 도어락비번: e.target.value });
+                          }
+                        }}
+                        className="w-[70px] px-1.5 py-1 border border-gray-300 rounded text-xs text-gray-900 text-center"
+                      />
+                    </td>
+                    <td className="px-2 py-1" style={{ minWidth: '260px' }}>
+                      {/* 조치사항 (객실정비조치 필드 사용) */}
+                      <input
+                        type="text"
                         key={`action-${complaint.id}`}
                         defaultValue={complaint.객실정비조치 || ''}
                         onBlur={(e) => {
-                          if (e.target.value !== complaint.객실정비조치) {
+                          if (e.target.value !== (complaint.객실정비조치 || '')) {
                             onUpdate(complaint.id, { 객실정비조치: e.target.value });
                           }
                         }}
-                        className="w-full px-2 py-1 border border-gray-300 rounded text-gray-900 resize-none"
-                        rows={1}
-                        placeholder="조치사항 입력"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-900"
                       />
                     </td>
                     </tr>
@@ -677,6 +722,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap w-12">호실</th>
                     <th className="px-1 py-1 text-center font-semibold whitespace-nowrap w-16">상태</th>
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap w-20">청소예정일</th>
+                    <th className="px-1 py-1 text-center font-semibold whitespace-nowrap w-16">비번</th>
                     <th className="px-1 py-1 text-left font-semibold whitespace-nowrap">조치사항</th>
                   </tr>
                 </thead>
@@ -758,7 +804,13 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      onUpdate(complaint.id, { 상태: status, ...(status === '완료' ? { 완료일시: new Date().toISOString() } : {}) });
+                                      onUpdate(complaint.id, {
+                                        상태: status,
+                                        ...(status === '완료' ? {
+                                          완료일시: new Date().toISOString(),
+                                          ...(complaint.퇴실상태 === '퇴실' ? { 퇴실상태: '완료' } : {})
+                                        } : {})
+                                      });
                                     }}
                                     className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                                       isActive
@@ -792,19 +844,32 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                             </PopoverContent>
                           </Popover>
                         </td>
-                        <td className="px-2 py-1" style={{ minWidth: '300px' }}>
-                          <textarea
-                            key={`action-${complaint.id}`}
-                            defaultValue={complaint.객실정비조치 || ''}
-                            onBlur={(e) => {
-                              if (e.target.value !== complaint.객실정비조치) {
-                                onUpdate(complaint.id, { 객실정비조치: e.target.value });
-                              }
-                            }}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-gray-900 resize-none"
-                            rows={1}
-                            placeholder="조치사항 입력"
-                          />
+                        <td className="px-2 py-1 whitespace-nowrap">
+                      {/* 비번 (도어락비번 필드 사용) */}
+                      <input
+                        type="text"
+                        defaultValue={complaint.도어락비번 || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (complaint.도어락비번 || '')) {
+                            onUpdate(complaint.id, { 도어락비번: e.target.value });
+                          }
+                        }}
+                        className="w-[70px] px-1.5 py-1 border border-gray-300 rounded text-xs text-gray-900 text-center"
+                      />
+                        </td>
+                        <td className="px-2 py-1" style={{ minWidth: '260px' }}>
+                      {/* 조치사항 (객실정비조치 필드 사용) */}
+                      <input
+                        type="text"
+                        key={`action-${complaint.id}`}
+                        defaultValue={complaint.객실정비조치 || ''}
+                        onBlur={(e) => {
+                          if (e.target.value !== (complaint.객실정비조치 || '')) {
+                            onUpdate(complaint.id, { 객실정비조치: e.target.value });
+                          }
+                        }}
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-xs text-gray-900"
+                      />
                         </td>
                       </tr>
                     );
