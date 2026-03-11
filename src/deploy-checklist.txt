@@ -1,0 +1,73 @@
+✅ BLUECARE Vercel 배포 체크리스트
+=====================================
+
+📦 파일 준비 완료
+-----------------
+✓ vite.config.ts - base: './', outDir: 'build' 설정됨
+✓ vercel.json - outputDirectory: 'build' 설정됨
+✓ package.json - xlsx 패키지 포함, 이름 수정됨
+✓ tsconfig.json - 경로 매핑 설정됨
+✓ postcss.config.js - Tailwind 설정 추가됨
+✓ globals.css - @import "tailwindcss" 추가됨
+✓ .gitignore - 빌드 폴더 제외 설정됨
+✓ .env.example - 환경 변수 예시 파일
+
+🚀 배포 단계
+-----------
+1. 깃허브 푸시:
+   git add .
+   git commit -m "Vercel 배포 설정 수정"
+   git push origin main
+
+2. Vercel 대시보드 확인:
+   - Settings > General > Output Directory: build
+   - Settings > Environment Variables:
+     • VITE_SUPABASE_URL
+     • VITE_SUPABASE_ANON_KEY
+
+3. 재배포:
+   - Deployments 탭
+   - 최신 배포 > Redeploy
+
+🎯 테스트 항목
+-------------
+□ 로그인 페이지 표시
+□ 스타일 정상 (색상, 레이아웃)
+□ 로그인 기능 (01~10)
+□ 민원 등록
+□ 전체조회 페이지
+□ 영선 페이지
+□ 객실이동 페이지
+□ 객실정비 페이지
+□ 안내 페이지
+
+📝 주요 수정사항
+---------------
+• vite.config.ts: base path를 './'로 설정하여 상대 경로 사용
+• vite.config.ts: outDir을 'build'로 변경
+• globals.css: Tailwind CSS 임포트 추가
+• package.json: xlsx 패키지 추가
+• postcss.config.js: Tailwind PostCSS 플러그인 설정
+
+🐛 문제 해결
+-----------
+▶ CSS 로드 안 됨
+  → vite.config.ts의 base: './' 확인
+  → globals.css 맨 위에 @import "tailwindcss" 확인
+
+▶ 빌드 폴더 인식 안 됨
+  → vercel.json의 outputDirectory: 'build' 확인
+  → vite.config.ts의 outDir: 'build' 확인
+
+▶ Supabase 연결 안 됨
+  → Vercel 환경 변수 확인
+  → VITE_ 접두사 확인
+
+💡 팁
+-----
+• 로컬 테스트: npm run build && npm run preview
+• 캐시 문제: Vercel에서 "Clear Cache and Deploy" 사용
+• 환경 변수는 모든 환경(Production, Preview, Development)에 적용
+
+=====================================
+마지막 업데이트: 2026.02.08

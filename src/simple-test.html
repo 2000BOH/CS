@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>간단 테스트</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .test-item {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 5px;
+    }
+    .success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>BLUECARE 테스트 페이지</h1>
+  <div id="tests"></div>
+  <hr>
+  <h2>로그인 테스트</h2>
+  <div id="loginButtons"></div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script>
+    const testsDiv = document.getElementById('tests');
+    
+    function addTest(message, success) {
+      const div = document.createElement('div');
+      div.className = 'test-item ' + (success ? 'success' : 'error');
+      div.textContent = (success ? '✅ ' : '❌ ') + message;
+      testsDiv.appendChild(div);
+    }
+    
+    // 테스트 1: Supabase CDN
+    if (window.supabase) {
+      addTest('Supabase CDN 로드 성공', true);
+    } else {
+      addTest('Supabase CDN 로드 실패', false);
+    }
+    
+    // 테스트 2: config.js
+    if (typeof SUPABASE_URL !== 'undefined') {
+      addTest('config.js 로드 성공 (SUPABASE_URL 확인)', true);
+    } else {
+      addTest('config.js 로드 실패', false);
+    }
+    
+    // 테스트 3: USERS 데이터
+    if (typeof USERS !== 'undefined') {
+      addTest('USERS 데이터 로드 성공 (' + Object.keys(USERS).length + '명)', true);
+    } else {
+      addTest('USERS 데이터 로드 실패', false);
+    }
+    
+    // 테스트 4: Supabase 클라이언트 생성
+    try {
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      addTest('Supabase 클라이언트 생성 성공', true);
+      
+      // 테스트 5: DB 연결 테스트
+      supabase.from('complaints').select('count', { count: 'exact', head: true })
+        .then(({ count, error }) => {
+          if (error) {
+            if (error.message.includes('does not exist')) {
+              addTest('DB 연결 성공 (테이블 미생성: 안내 페이지에서 SQL 실행 필요)', true);
+            } else {
+              addTest('DB 연결 오류: ' + error.message, false);
+            }
+          } else {
+            addTest('DB 연결 성공 (민원 ' + (count || 0) + '건)', true);
+          }
+        });
+    } catch (err) {
+      addTest('Supabase 클라이언트 생성 실패: ' + err.message, false);
+    }
+    
+    // 로그인 버튼 생성
+    const loginDiv = document.getElementById('loginButtons');
+    if (typeof USERS !== 'undefined') {
+      Object.entries(USERS).forEach(([id, user]) => {
+        const btn = document.createElement('button');
+        btn.textContent = `${id} - ${user.name}`;
+        btn.onclick = () => {
+          alert(`${user.name}님으로 로그인했습니다!\n\nindex.html을 열면 정상 작동합니다.`);
+        };
+        loginDiv.appendChild(btn);
+      });
+    }
+  </script>
+</body>
+</html>

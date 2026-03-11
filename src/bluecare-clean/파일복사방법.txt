@@ -1,0 +1,41 @@
+🚀 BLUECARE 순수 HTML 버전 사용 방법
+
+문제: 프로젝트 루트의 index.html이 main.tsx를 찾으려고 합니다.
+해결: 이 폴더(bluecare-clean)의 파일만 사용하세요!
+
+📁 필요한 파일:
+1. index.html
+2. style.css (프로젝트 루트에서 복사)
+3. script.js (프로젝트 루트에서 복사)
+4. config.js (이미 있음)
+
+✅ 수동으로 파일 복사:
+
+1. 프로젝트 루트의 style.css를 이 폴더에 복사
+2. 프로젝트 루트의 script.js를 이 폴더에 복사
+
+또는
+
+명령어로 복사:
+cp ../style.css .
+cp ../script.js .
+
+🌐 실행 방법:
+
+방법 1: Python 서버 (권장!)
+cd bluecare-clean
+python -m http.server 8000
+브라우저에서 http://localhost:8000 접속
+
+방법 2: VSCode Live Server
+1. bluecare-clean 폴더를 VSCode로 열기
+2. index.html 우클릭
+3. "Open with Live Server" 클릭
+
+방법 3: 더블클릭 (CORS 에러 가능성 있음)
+index.html을 더블클릭
+
+⚠️ 주의:
+- 반드시 이 폴더(bluecare-clean)의 파일만 사용하세요!
+- 프로젝트 루트의 index.html은 사용하지 마세요!
+- file:// 프로토콜보다 http://localhost 사용을 권장합니다!

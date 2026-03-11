@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BLUECARE - 블루오션 레지던스 호텔</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <!-- 로그인 화면 -->
+  <div id="loginScreen" class="login-screen">
+    <div class="login-container">
+      <div class="login-header">
+        <img src="https://via.placeholder.com/150x50/1e40af/ffffff?text=BLUECARE" alt="BLUECARE" class="logo">
+        <h1>블루오션 레지던스 호텔</h1>
+        <p>민원관리 시스템</p>
+      </div>
+      <div class="login-grid" id="loginGrid"></div>
+    </div>
+  </div>
+
+  <!-- 메인 앱 -->
+  <div id="mainApp" class="main-app" style="display: none;">
+    <!-- 헤더 -->
+    <header class="app-header">
+      <div class="header-left">
+        <img src="https://via.placeholder.com/120x40/1e40af/ffffff?text=BLUECARE" alt="BLUECARE" class="header-logo">
+        <div class="user-info">
+          <span id="currentUserName"></span>
+        </div>
+      </div>
+      <button id="logoutBtn" class="logout-btn">로그아웃</button>
+    </header>
+
+    <!-- 네비게이션 -->
+    <nav class="nav-tabs">
+      <button class="nav-tab active" data-page="input">입력</button>
+      <button class="nav-tab" data-page="all">전체조회</button>
+      <button class="nav-tab" data-page="maintenance">영선</button>
+      <button class="nav-tab" data-page="roommove">객실이동</button>
+      <button class="nav-tab" data-page="cleaning">객실정비</button>
+      <button class="nav-tab" data-page="info">안내</button>
+    </nav>
+
+    <!-- 페이지 컨테이너 -->
+    <main class="page-container">
+      <!-- 입력 페이지 -->
+      <div id="page-input" class="page active">
+        <div class="page-content">
+          <div class="form-section">
+            <h2>민원 등록</h2>
+            <form id="complaintForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>차수 *</label>
+                  <select id="form-chasu" required>
+                    <option value="">선택</option>
+                    <option value="1차">1차</option>
+                    <option value="2차">2차</option>
+                    <option value="3차">3차</option>
+                    <option value="4차">4차</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>호실 *</label>
+                  <input type="text" id="form-room" placeholder="예: 1001" required>
+                </div>
+                <div class="form-group">
+                  <label>구분 *</label>
+                  <select id="form-category" required>
+                    <option value="">선택</option>
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                    <option value="E">E</option>
+                    <option value="F">F</option>
+                    <option value="G">G</option>
+                    <option value="H">H</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>내용 *</label>
+                <textarea id="form-content" rows="3" required></textarea>
+              </div>
+              <div class="form-group">
+                <label>조치사항</label>
+                <textarea id="form-action" rows="2"></textarea>
+              </div>
+              <div class="form-group">
+                <label>사진</label>
+                <input type="file" id="form-photos" multiple accept="image/*">
+                <div id="photoPreview" class="photo-preview"></div>
+              </div>
+              <div class="form-group">
+                <label>
+                  <input type="checkbox" id="form-priority">
+                  우선처리
+                </label>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn-primary">등록</button>
+                <button type="button" id="formResetBtn" class="btn-secondary">초기화</button>
+              </div>
+            </form>
+          </div>
+          <div class="history-section">
+            <h2>호실 이력 조회</h2>
+            <div class="form-row">
+              <div class="form-group">
+                <label>차수</label>
+                <select id="history-chasu">
+                  <option value="">전체</option>
+                  <option value="1차">1차</option>
+                  <option value="2차">2차</option>
+                  <option value="3차">3차</option>
+                  <option value="4차">4차</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>호실</label>
+                <input type="text" id="history-room" placeholder="예: 1001">
+              </div>
+              <button id="historySearchBtn" class="btn-primary">조회</button>
+            </div>
+            <div id="historyResult" class="history-result"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 전체조회 페이지 -->
+      <div id="page-all" class="page">
+        <div class="page-header">
+          <h2>전체 민원 조회</h2>
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="card">카드뷰</button>
+            <button class="view-btn" data-view="table">테이블뷰</button>
+          </div>
+        </div>
+        <div class="filters">
+          <select id="filter-status">
+            <option value="">전체 상태</option>
+            <option value="접수">접수</option>
+            <option value="영선팀">영선팀</option>
+            <option value="진행중">진행중</option>
+            <option value="부서이관">부서이관</option>
+            <option value="외부업체">외부업체</option>
+            <option value="완료">완료</option>
+          </select>
+          <select id="filter-category">
+            <option value="">전체 구분</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="F">F</option>
+            <option value="G">G</option>
+            <option value="H">H</option>
+          </select>
+          <select id="filter-chasu">
+            <option value="">전체 차수</option>
+            <option value="1차">1차</option>
+            <option value="2차">2차</option>
+            <option value="3차">3차</option>
+            <option value="4차">4차</option>
+          </select>
+          <input type="text" id="filter-room" placeholder="호실 검색">
+        </div>
+        <div class="stats-bar">
+          <div class="stat-item">전체: <span id="stat-total">0</span></div>
+          <div class="stat-item">접수: <span id="stat-접수">0</span></div>
+          <div class="stat-item">영선팀: <span id="stat-영선팀">0</span></div>
+          <div class="stat-item">진행중: <span id="stat-진행중">0</span></div>
+          <div class="stat-item">부서이관: <span id="stat-부서이관">0</span></div>
+          <div class="stat-item">외부업체: <span id="stat-외부업체">0</span></div>
+          <div class="stat-item">완료: <span id="stat-완료">0</span></div>
+        </div>
+        <div id="allComplaintsList" class="complaints-list"></div>
+      </div>
+
+      <!-- 영선 페이지 -->
+      <div id="page-maintenance" class="page">
+        <div class="page-header">
+          <h2>영선 작업 관리</h2>
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="card">카드뷰</button>
+            <button class="view-btn" data-view="table">테이블뷰</button>
+          </div>
+        </div>
+        <div class="filters">
+          <select id="maintenance-filter-status">
+            <option value="">전체 상태</option>
+            <option value="영선팀">영선팀</option>
+            <option value="진행중">진행중</option>
+            <option value="완료">완료</option>
+          </select>
+        </div>
+        <div id="maintenanceList" class="complaints-list"></div>
+      </div>
+
+      <!-- 객실이동 페이지 -->
+      <div id="page-roommove" class="page">
+        <div class="page-header">
+          <h2>객실 이동 관리</h2>
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="card">카드뷰</button>
+            <button class="view-btn" data-view="table">테이블뷰</button>
+          </div>
+        </div>
+        <div id="roommoveList" class="complaints-list"></div>
+      </div>
+
+      <!-- 객실정비 페이지 -->
+      <div id="page-cleaning" class="page">
+        <div class="page-header">
+          <h2>객실 청소 및 정비</h2>
+          <div class="view-toggle">
+            <button class="view-btn active" data-view="card">카드뷰</button>
+            <button class="view-btn" data-view="table">테이블뷰</button>
+          </div>
+        </div>
+        <div id="cleaningList" class="complaints-list"></div>
+      </div>
+
+      <!-- 안내 페이지 -->
+      <div id="page-info" class="page">
+        <div class="info-content">
+          <h2>연락처 정보</h2>
+          <div class="info-section">
+            <h3>관리실 및 방재실</h3>
+            <p>전화: 02-1234-5678</p>
+            <p>내선: 1234</p>
+          </div>
+          <div class="info-section">
+            <h3>케이블TV 및 통신</h3>
+            <p>SK브로드밴드: 1600-0000</p>
+            <p>고객센터: 1588-0000</p>
+          </div>
+          <div class="info-section">
+            <h3>객실 비밀번호</h3>
+            <p>기본 비밀번호: 1234</p>
+            <p>변경 문의: 관리실</p>
+          </div>
+          <div class="info-section">
+            <h3>Supabase 테이블 설정</h3>
+            <p>아래 SQL을 Supabase SQL Editor에서 실행하세요:</p>
+            <pre><code>CREATE TABLE complaints (
+  id TEXT PRIMARY KEY,
+  차수 TEXT NOT NULL,
+  호실 TEXT NOT NULL,
+  구분 TEXT NOT NULL,
+  내용 TEXT NOT NULL,
+  조치사항 TEXT,
+  상태 TEXT NOT NULL,
+  등록일시 TIMESTAMPTZ NOT NULL,
+  완료일시 TIMESTAMPTZ,
+  등록자 TEXT NOT NULL,
+  사진 TEXT[],
+  우선처리 BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Enable all" ON complaints FOR ALL USING (true);</code></pre>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 모달: 상세보기 -->
+  <div id="detailModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>민원 상세</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div id="detailContent" class="modal-body"></div>
+      <div class="modal-footer">
+        <button id="editBtn" class="btn-primary">수정</button>
+        <button id="deleteBtn" class="btn-danger">삭제</button>
+        <button class="modal-close btn-secondary">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모달: 수정 -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>민원 수정</h2>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editForm">
+          <input type="hidden" id="edit-id">
+          <div class="form-group">
+            <label>상태 *</label>
+            <select id="edit-status" required>
+              <option value="접수">접수</option>
+              <option value="영선팀">영선팀</option>
+              <option value="진행중">진행중</option>
+              <option value="부서이관">부서이관</option>
+              <option value="외부업체">외부업체</option>
+              <option value="완료">완료</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>조치사항</label>
+            <textarea id="edit-action" rows="3"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">저장</button>
+            <button type="button" class="modal-close btn-secondary">취소</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 모달: 사진 확대 -->
+  <div id="photoModal" class="modal">
+    <div class="modal-content modal-photo">
+      <button class="modal-close">&times;</button>
+      <img id="photoModalImg" src="" alt="사진">
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
