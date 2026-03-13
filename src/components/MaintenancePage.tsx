@@ -20,6 +20,7 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [processDatePopovers, setProcessDatePopovers] = useState<Record<string, boolean>>({});
   const [photoHoverId, setPhotoHoverId] = useState<string | null>(null);
+  const [photoHoverImage, setPhotoHoverImage] = useState<string | null>(null);
   const [photoHoverRect, setPhotoHoverRect] = useState<{ left: number; top: number } | null>(null);
   const [viewMode, setViewMode] = useState<'card' | 'table'>(() => {
     if (typeof window !== 'undefined') {
@@ -35,6 +36,29 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
     if (typeof window !== 'undefined') {
       localStorage.setItem('maintenanceViewMode', mode);
     }
+  };
+
+  // 호버 미리보기 위치를 뷰포트 안으로 계산 (다른 웹앱처럼 화면 안에 보이게)
+  const getPreviewPosition = (thumbRect: DOMRect): { left: number; top: number } => {
+    const gap = 8;
+    const pw = 280;
+    const ph = 320;
+    const vw = typeof window !== 'undefined' ? window.innerWidth : 800;
+    const vh = typeof window !== 'undefined' ? window.innerHeight : 600;
+    let left = thumbRect.left + thumbRect.width / 2 - pw / 2;
+    left = Math.max(gap, Math.min(left, vw - pw - gap));
+    const spaceAbove = thumbRect.top;
+    const spaceBelow = vh - thumbRect.bottom;
+    let top: number;
+    if (spaceAbove >= ph + gap) {
+      top = thumbRect.top - ph - gap;
+    } else if (spaceBelow >= ph + gap) {
+      top = thumbRect.bottom + gap;
+    } else {
+      top = Math.max(gap, Math.min(thumbRect.top - ph - gap, vh - ph - gap));
+    }
+    top = Math.max(gap, Math.min(top, vh - ph - gap));
+    return { left, top };
   };
 
   // 사진 업로드 핸들러 (상세보기에서 추가)
@@ -271,12 +295,14 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
   // 상태 색상
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      '접수': 'bg-blue-100 text-blue-700 border-blue-300',
-      '영선팀': 'bg-teal-100 text-teal-700 border-teal-300',
-      '진행중': 'bg-orange-100 text-orange-700 border-orange-300',
-      '부서이관': 'bg-purple-100 text-purple-700 border-purple-300',
-      '외부업체': 'bg-indigo-100 text-indigo-700 border-indigo-300',
-      '완료': 'bg-green-100 text-green-700 border-green-300'
+      '접수': 'bg-blue-200 text-blue-800 border-blue-400',
+      '영선팀': 'bg-teal-200 text-teal-800 border-teal-400',
+      '진행중': 'bg-orange-200 text-orange-800 border-orange-400',
+      '부서이관': 'bg-purple-200 text-purple-800 border-purple-400',
+      '외부업체': 'bg-indigo-200 text-indigo-800 border-indigo-400',
+      // 청소요청은 더 강한 색감으로 (선택 상태가 확실히 보이도록)
+      '청소요청': 'bg-sky-500 text-white border-sky-600',
+      '완료': 'bg-green-200 text-green-800 border-green-400'
     };
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
@@ -524,13 +550,12 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                       />
                     </div>
 
-                    {/* 사진 입력 / 보기 - 추가 버튼 옆에 기존 사진 표시 */}
+                    {/* 사진 입력 / 보기 - 버튼 크기 썸네일 + 호버 시 위에 확대 */}
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">사진</label>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <label className="flex items-center gap-2 px-3 py-1.5 border border-gray-300 rounded cursor-pointer hover:bg-gray-50 transition-colors shrink-0">
+                        <label className="flex items-center justify-center px-3 py-1.5 border border-gray-300 rounded cursor-pointer hover:bg-gray-50 transition-colors shrink-0 h-9 w-9">
                           <Camera className="w-4 h-4 text-gray-500" />
-                          <span className="text-xs text-gray-700">사진</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -540,16 +565,23 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                         </label>
                         {complaint.사진 && complaint.사진.length > 0 &&
                           complaint.사진.map((img: string, idx: number) => (
-                            <img
+                            <div
                               key={idx}
-                              src={img}
-                              alt={`첨부 ${idx + 1}`}
-                              className="w-14 h-14 object-cover rounded border border-gray-300 cursor-pointer hover:border-blue-500 transition-all shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onImageClick(img);
+                              className="relative shrink-0 w-8 h-8 rounded border border-gray-300 overflow-hidden bg-gray-100 cursor-pointer hover:border-blue-500 transition-all"
+                              onMouseEnter={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setPhotoHoverId(complaint.id);
+                                setPhotoHoverImage(img);
+                                setPhotoHoverRect(getPreviewPosition(rect));
                               }}
-                            />
+                              onMouseLeave={() => {
+                                setPhotoHoverId(null);
+                                setPhotoHoverImage(null);
+                                setPhotoHoverRect(null);
+                              }}
+                            >
+                              <img src={img} alt={`첨부 ${idx + 1}`} className="w-full h-full object-cover" />
+                            </div>
                           ))}
                       </div>
                     </div>
@@ -595,7 +627,7 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">상태 변경</label>
                       <div className="flex gap-1 flex-wrap">
-                        {['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'].map((status) => (
+                        {['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'].map((status) => (
                           <button
                             key={status}
                             onClick={(e) => {
@@ -618,20 +650,27 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                       </div>
                     </div>
 
-                    {/* 사진 */}
+                    {/* 사진 - 버튼 크기 썸네일 + 호버 시 위에 확대 */}
                     {complaint.사진 && complaint.사진.length > 0 && (
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {complaint.사진.map((img, idx) => (
-                          <img
+                          <div
                             key={idx}
-                            src={img}
-                            alt={`첨부 ${idx + 1}`}
-                            className="w-16 h-16 object-cover rounded border border-gray-300 cursor-pointer hover:border-blue-500 transition-all"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onImageClick(img);
+                            className="relative shrink-0 w-8 h-8 rounded border border-gray-300 overflow-hidden bg-gray-100 cursor-pointer hover:border-blue-500 transition-all"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setPhotoHoverId(complaint.id);
+                              setPhotoHoverImage(img);
+                              setPhotoHoverRect(getPreviewPosition(rect));
                             }}
-                          />
+                            onMouseLeave={() => {
+                              setPhotoHoverId(null);
+                              setPhotoHoverImage(null);
+                              setPhotoHoverRect(null);
+                            }}
+                          >
+                            <img src={img} alt={`첨부 ${idx + 1}`} className="w-full h-full object-cover" />
+                          </div>
                         ))}
                       </div>
                     )}
@@ -704,9 +743,26 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                     <td className="px-1 py-1 text-gray-900 whitespace-nowrap text-center">{complaint.차수}차</td>
                     <td className="px-1 py-1 text-gray-900 whitespace-nowrap text-center">{complaint.호실}호</td>
                     <td className="px-1 py-1 whitespace-nowrap text-center">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(complaint.상태)}`}>
-                        {complaint.상태}
-                      </span>
+                      <select
+                        value={complaint.상태}
+                        onChange={(e) => {
+                          const status = e.target.value as Complaint['상태'];
+                          const updates: Partial<Complaint> = { 상태: status };
+                          if (status === '완료' && !complaint.완료일시) {
+                            updates.완료일시 = new Date().toISOString();
+                          }
+                          onUpdate(complaint.id, updates);
+                        }}
+                        className="px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 bg-white"
+                      >
+                        <option value="접수">접수</option>
+                        <option value="영선팀">영선팀</option>
+                        <option value="진행중">진행중</option>
+                        <option value="부서이관">부서이관</option>
+                        <option value="외부업체">외부업체</option>
+                        <option value="청소요청">청소요청</option>
+                        <option value="완료">완료</option>
+                      </select>
                     </td>
                     <td className="px-1 py-1 text-center" style={{ maxWidth: '200px' }}>
                       <textarea
@@ -772,63 +828,32 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                         </Popover>
                       </div>
                     </td>
-                    {/* 사진 */}
+                    {/* 사진 - 버튼 크기 썸네일 + 호버 시 위에 확대 */}
                     <td className="px-1 py-1 align-top">
                       <div className="flex items-center gap-1.5">
-                        <div
-                          className="relative shrink-0"
-                          onMouseEnter={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            setPhotoHoverId(complaint.id);
-                            setPhotoHoverRect({ left: rect.right + 4, top: rect.top });
-                          }}
-                          onMouseLeave={() => {
-                            setPhotoHoverId(null);
-                            setPhotoHoverRect(null);
-                          }}
-                        >
-                          <div
-                            className="w-14 h-[72px] rounded border border-gray-300 overflow-hidden flex items-center justify-center bg-gray-50"
-                            style={{
-                              backgroundImage: complaint.사진?.[0]
-                                ? 'none'
-                                : `linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-                                   linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)`,
-                              backgroundSize: '8px 8px',
-                            }}
-                          >
-                            {complaint.사진?.[0] ? (
-                              <img
-                                src={complaint.사진[0]}
-                                alt="미리보기"
-                                className="w-full h-full object-cover cursor-pointer"
-                                onClick={(e) => { e.stopPropagation(); onImageClick(complaint.사진![0]); }}
-                              />
-                            ) : null}
-                          </div>
-                          {photoHoverId === complaint.id && photoHoverRect && (
+                        {complaint.사진 && complaint.사진.length > 0 ? (
+                          complaint.사진.map((img: string, idx: number) => (
                             <div
-                              className="fixed z-50 rounded border border-gray-300 bg-white shadow-xl p-0.5"
-                              style={{ left: photoHoverRect.left, top: photoHoverRect.top, width: 120, height: 200 }}
+                              key={idx}
+                              className="relative shrink-0 w-8 h-8 rounded border border-gray-300 overflow-hidden bg-gray-100 cursor-pointer hover:border-blue-500 transition-all"
+                              onMouseEnter={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                setPhotoHoverId(complaint.id);
+                                setPhotoHoverImage(img);
+                                setPhotoHoverRect(getPreviewPosition(rect));
+                              }}
+                              onMouseLeave={() => {
+                                setPhotoHoverId(null);
+                                setPhotoHoverImage(null);
+                                setPhotoHoverRect(null);
+                              }}
                             >
-                              {complaint.사진?.[0] ? (
-                                <img src={complaint.사진[0]} alt="확대" className="w-full h-full object-cover rounded" style={{ width: 120, height: 200 }} />
-                              ) : (
-                                <div
-                                  className="w-full h-full rounded"
-                                  style={{
-                                    width: 120, height: 200,
-                                    backgroundImage: `linear-gradient(to right, #e5e7eb 1px, transparent 1px), linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)`,
-                                    backgroundSize: '10px 10px',
-                                  }}
-                                />
-                              )}
+                              <img src={img} alt={`첨부 ${idx + 1}`} className="w-full h-full object-cover" />
                             </div>
-                          )}
-                        </div>
-                        <label className="inline-flex flex-col items-center gap-0.5 px-1.5 py-1 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer text-xs shrink-0">
+                          ))
+                        ) : null}
+                        <label className="inline-flex items-center justify-center px-1.5 py-1 rounded border border-gray-300 bg-gray-50 hover:bg-gray-100 cursor-pointer text-xs shrink-0 h-9 w-9">
                           <Camera className="w-4 h-4 text-gray-600" />
-                          <span>사진</span>
                           <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(complaint.id, e)} className="hidden" />
                         </label>
                       </div>
@@ -838,6 +863,20 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {/* 호버 시 사진 확대 미리보기 (전역 1개) */}
+      {photoHoverImage && photoHoverRect && (
+        <div
+          className="fixed z-50 rounded-lg border border-gray-300 bg-white shadow-xl overflow-hidden pointer-events-none"
+          style={{
+            width: 280,
+            maxHeight: 320,
+            left: photoHoverRect.left,
+            top: photoHoverRect.top,
+          }}
+        >
+          <img src={photoHoverImage} alt="확대" className="w-full h-auto object-contain max-h-[320px]" />
         </div>
       )}
     </div>

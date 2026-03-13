@@ -34,9 +34,9 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
     }
   };
 
-  // 청소 구분만 필터링 + 퇴실상태가 "퇴실"인 객실이동 데이터도 포함
+  // 청소 구분 + 퇴실상태 "퇴실" + 영선에서 "청소요청"으로 넘긴 건도 포함
   const cleaningComplaints = complaints.filter(c => 
-    c.구분 === '청소' || c.퇴실상태 === '퇴실'
+    c.구분 === '청소' || c.퇴실상태 === '퇴실' || c.상태 === '청소요청'
   );
 
   // 날짜 비교 함수
@@ -254,7 +254,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-base font-bold text-gray-900">🧹 객실정비 관리 <span className="text-sm text-gray-500 ml-2">전체 {cleaningComplaints.length}건 | 표시 {sortedComplaints.length}건</span></h2>
+          <h2 className="text-base font-bold text-gray-900">🧹 객실정비 관리 (정비상태) <span className="text-sm text-gray-500 ml-2">전체 {cleaningComplaints.length}건 | 표시 {sortedComplaints.length}건</span></h2>
           </div>
 
           {/* 청소팀 전용 정보 - 10번 아이디만 표시 */}

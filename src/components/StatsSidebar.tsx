@@ -8,6 +8,7 @@ interface StatsSidebarProps {
     진행중: number;
     부서이관: number;
     외부업체: number;
+    청소요청: number;
     완료: number;
   };
   categories: {
@@ -48,6 +49,7 @@ export function StatsSidebar({
     { key: '진행중', label: '진행중', color: 'bg-orange-500', textColor: 'text-orange-600', count: stats.진행중 },
     { key: '부서이관', label: '부서이관', color: 'bg-purple-500', textColor: 'text-purple-600', count: stats.부서이관 },
     { key: '외부업체', label: '외부업체', color: 'bg-indigo-500', textColor: 'text-indigo-600', count: stats.외부업체 },
+    { key: '청소요청', label: '청소요청', color: 'bg-sky-500', textColor: 'text-sky-600', count: stats.청소요청 },
     { key: '완료', label: '완료', color: 'bg-green-500', textColor: 'text-green-600', count: stats.완료 },
   ];
 

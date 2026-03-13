@@ -106,8 +106,16 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
     }
   };
 
-  const handleStatusChange = (id: string, newStatus: '접수' | '영선팀' | '진행중' | '부서이관' | '외부업체' | '완료') => {
+  const handleStatusChange = (id: string, newStatus: Complaint['상태']) => {
     const updates: Partial<Complaint> = { 상태: newStatus };
+
+    // 상태에 따라 구분 자동 매핑 (전페이지 공통 상태 유지)
+    if (newStatus === '영선팀') {
+      updates.구분 = '영선';
+    } else if (newStatus === '청소요청') {
+      updates.구분 = '청소';
+    }
+
     if (newStatus === '완료') {
       updates.완료일시 = new Date().toISOString();
     }
@@ -338,13 +346,13 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                           </div>
                           <div className="flex items-center gap-1 mb-1 text-[10px] text-gray-500">
                             {complaint.사진 && complaint.사진.length > 0 && (
-                              <div className="flex gap-0.5 ml-1">
+                              <div className="flex gap-1 ml-1">
                                 {complaint.사진.slice(0, 2).map((img, idx) => (
                                   <img 
                                     key={idx}
                                     src={img} 
                                     alt={`첨부 ${idx + 1}`} 
-                                    className="w-4 h-4 object-cover rounded border border-gray-300 cursor-pointer hover:border-blue-500"
+                                    className="w-8 h-8 object-cover rounded border border-gray-300 cursor-pointer hover:border-blue-500"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onImageClick(img);
@@ -450,26 +458,19 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             <label className="text-xs font-medium text-gray-600 block mb-2">
                               처리상태 변경
                             </label>
-                            <div className="grid grid-cols-3 gap-1">
-                              {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'] as const).map((status) => (
-                                <button
-                                  key={status}
-                                  onClick={() => handleStatusChange(complaint.id, status)}
-                                  className={`py-1.5 px-2 rounded text-xs font-medium transition-colors ${
-                                    complaint.상태 === status
-                                      ? status === '접수' ? 'bg-blue-600 text-white'
-                                      : status === '영선팀' ? 'bg-teal-600 text-white'
-                                      : status === '진행중' ? 'bg-orange-600 text-white'
-                                      : status === '부서이관' ? 'bg-purple-600 text-white'
-                                      : status === '외부업체' ? 'bg-indigo-600 text-white'
-                                      : 'bg-green-600 text-white'
-                                      : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {status}
-                                </button>
-                              ))}
-                            </div>
+                            <select
+                              value={complaint.상태}
+                              onChange={(e) => handleStatusChange(complaint.id, e.target.value as Complaint['상태'])}
+                              className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="접수">접수</option>
+                              <option value="영선팀">영선팀</option>
+                              <option value="진행중">진행중</option>
+                              <option value="부서이관">부서이관</option>
+                              <option value="외부업체">외부업체</option>
+                              <option value="청소요청">청소요청</option>
+                              <option value="완료">완료</option>
+                            </select>
                           </div>
 
                           {complaint.완료일시 && (
@@ -639,26 +640,19 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             <label className="text-xs font-medium text-gray-600 block mb-2">
                               처리상태 변경
                             </label>
-                            <div className="flex gap-2 flex-wrap">
-                              {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'] as const).map((status) => (
-                                <button
-                                  key={status}
-                                  onClick={() => handleStatusChange(complaint.id, status)}
-                                  className={`flex-1 min-w-[80px] py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                                    complaint.상태 === status
-                                      ? status === '접수' ? 'bg-blue-600 text-white'
-                                      : status === '영선팀' ? 'bg-teal-600 text-white'
-                                      : status === '진행중' ? 'bg-orange-600 text-white'
-                                      : status === '부서이관' ? 'bg-purple-600 text-white'
-                                      : status === '외부업체' ? 'bg-indigo-600 text-white'
-                                      : 'bg-green-600 text-white'
-                                      : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
-                                  }`}
-                                >
-                                  {status}
-                                </button>
-                              ))}
-                            </div>
+                            <select
+                              value={complaint.상태}
+                              onChange={(e) => handleStatusChange(complaint.id, e.target.value as Complaint['상태'])}
+                              className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                              <option value="접수">접수</option>
+                              <option value="영선팀">영선팀</option>
+                              <option value="진행중">진행중</option>
+                              <option value="부서이관">부서이관</option>
+                              <option value="외부업체">외부업체</option>
+                              <option value="청소요청">청소요청</option>
+                              <option value="완료">완료</option>
+                            </select>
                           </div>
 
                           {complaint.완료일시 && (
@@ -681,24 +675,24 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
               <table className="w-full border-collapse min-w-[1200px]" style={{ fontSize: '13px' }}>
                 <thead>
                   <tr>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">상태</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">차수</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">호실</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">구분</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">등록자</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">등록일시</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">내용</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">사진</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">연락일</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">조치일</th>
-                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap">조치사항</th>
+                    <th className="px-0.5 py-1 text-center font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[70px]">상태</th>
+                    <th className="px-0.5 py-1 text-center font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[50px]">차수</th>
+                    <th className="px-0.5 py-1 text-center font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[70px]">호실</th>
+                    <th className="px-0.5 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[70px]">구분</th>
+                    <th className="px-0.5 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[70px]">등록자</th>
+                    <th className="px-1 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[110px]">등록일시</th>
+                    <th className="px-1 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[110px]">연락일</th>
+                    <th className="px-1 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[110px]">조치일</th>
+                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap min-w-[220px]">내용</th>
+                    <th className="px-2 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap min-w-[220px]">조치사항</th>
+                    <th className="px-1 py-1.5 text-left font-medium bg-blue-700 text-white border-b whitespace-nowrap w-[70px]">사진</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedComplaints.map((complaint) => {
                     return (
                       <tr key={complaint.id} className="border-b border-gray-300 hover:bg-gray-50">
-                        <td className="px-2 py-1.5 whitespace-nowrap">{editingCell?.id === complaint.id && editingCell.field === '상태' ? (
+                        <td className="px-0.5 py-1 whitespace-nowrap text-center">{editingCell?.id === complaint.id && editingCell.field === '상태' ? (
                           <select
                             value={complaint.상태}
                             onChange={(e) => {
@@ -707,7 +701,7 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             }}
                             onBlur={() => setEditingCell(null)}
                             autoFocus
-                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-[68px] px-1.5 py-1 border border-gray-300 rounded text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
                             style={{ fontSize: '13px' }}
                           >
                             <option value="접수">접수</option>
@@ -719,15 +713,15 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                           </select>
                         ) : (
                           <span 
-                            className={`px-2 py-1 rounded font-medium border cursor-pointer ${getStatusColor(complaint.상태)}`}
+                            className={`inline-block px-2 py-1 rounded font-medium border cursor-pointer ${getStatusColor(complaint.상태)}`}
                             onClick={() => setEditingCell({ id: complaint.id, field: '상태' })}
                           >
                             {complaint.상태}
                           </span>
                         )}</td>
-                        <td className="px-2 py-1.5 font-medium text-gray-900 whitespace-nowrap">{complaint.차수}차</td>
-                        <td className="px-2 py-1.5 font-medium text-gray-900 whitespace-nowrap">{complaint.호실}호</td>
-                        <td className="px-2 py-1.5 whitespace-nowrap">{editingCell?.id === complaint.id && editingCell.field === '구분' ? (
+                        <td className="px-0.5 py-1 font-medium text-gray-900 whitespace-nowrap text-center">{complaint.차수}차</td>
+                        <td className="px-0.5 py-1 font-medium text-gray-900 whitespace-nowrap text-center">{complaint.호실}호</td>
+                        <td className="px-0.5 py-1.5 whitespace-nowrap">{editingCell?.id === complaint.id && editingCell.field === '구분' ? (
                           <select
                             value={complaint.구분}
                             onChange={(e) => {
@@ -753,42 +747,17 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             {complaint.구분}
                           </span>
                         )}</td>
-                        <td className="px-2 py-1.5 whitespace-nowrap">
-                          <span className="px-2 py-1 rounded bg-blue-100 text-blue-700">{getUserName(complaint.등록자)}</span>
+                        <td className="px-0.5 py-1.5 whitespace-nowrap">
+                          <span className="block px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-xs text-center border border-blue-100">
+                            {getUserName(complaint.등록자)}
+                          </span>
                         </td>
-                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">{formatShortDate(complaint.등록일시)}</td>
-                        <td className="px-2 py-1.5 text-gray-900 whitespace-nowrap" style={{ maxWidth: '200px' }}>{editingCell?.id === complaint.id && editingCell.field === '내용' ? (
-                          <textarea
-                            key={`table-content-${complaint.id}`}
-                            defaultValue={complaint.내용}
-                            onBlur={(e) => {
-                              if (e.target.value !== complaint.내용) onUpdate(complaint.id, { 내용: e.target.value });
-                              setEditingCell(null);
-                            }}
-                            rows={2}
-                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                            style={{ fontSize: '13px' }}
-                          />
-                        ) : (
-                          <div 
-                            className="cursor-pointer hover:bg-gray-50 p-1 rounded truncate"
-                            onClick={() => setEditingCell({ id: complaint.id, field: '내용' })}
-                            title={complaint.내용}
-                          >
-                            {complaint.내용}
-                          </div>
-                        )}</td>
-                        <td className="px-2 py-1.5 text-center whitespace-nowrap">{complaint.사진 && complaint.사진.length > 0 ? (
-                          <button
-                            onClick={() => onImageClick(complaint.사진![0])}
-                            className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                          >
-                            {complaint.사진.length}
-                          </button>
-                        ) : (
-                          '-'
-                        )}</td>
-                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">
+                        <td className="px-1 py-1.5 text-gray-600 whitespace-nowrap">
+                          <span className="block px-2 py-1 bg-white border border-gray-300 rounded text-center">
+                            {formatShortDate(complaint.등록일시)}
+                          </span>
+                        </td>
+                        <td className="px-1 py-1.5 text-gray-600 whitespace-nowrap">
                           <DateCell
                             date={complaint.연락일}
                             onDateChange={(date) => onUpdate(complaint.id, { 연락일: date })}
@@ -799,7 +768,7 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             })}
                           />
                         </td>
-                        <td className="px-2 py-1.5 text-gray-600 whitespace-nowrap">
+                        <td className="px-1 py-1.5 text-gray-600 whitespace-nowrap">
                           <DateCell
                             date={complaint.조치일}
                             onDateChange={(date) => onUpdate(complaint.id, { 조치일: date })}
@@ -810,7 +779,28 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             })}
                           />
                         </td>
-                        <td className="px-2 py-1.5 text-gray-900 whitespace-nowrap" style={{ maxWidth: '200px' }}>{editingCell?.id === complaint.id && editingCell.field === '조치사항' ? (
+                        <td className="px-2 py-1.5 text-gray-900 whitespace-nowrap align-top" style={{ maxWidth: '260px' }}>{editingCell?.id === complaint.id && editingCell.field === '내용' ? (
+                          <textarea
+                            key={`table-content-${complaint.id}`}
+                            defaultValue={complaint.내용}
+                            onBlur={(e) => {
+                              if (e.target.value !== complaint.내용) onUpdate(complaint.id, { 내용: e.target.value });
+                              setEditingCell(null);
+                            }}
+                            rows={2}
+                            className="w-full px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            style={{ fontSize: '13px' }}
+                          />
+                        ) : (
+                          <div 
+                            className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded border border-gray-200 bg-white truncate"
+                            onClick={() => setEditingCell({ id: complaint.id, field: '내용' })}
+                            title={complaint.내용}
+                          >
+                            {complaint.내용}
+                          </div>
+                        )}</td>
+                        <td className="px-2 py-1.5 text-gray-900 whitespace-nowrap align-top" style={{ maxWidth: '260px' }}>{editingCell?.id === complaint.id && editingCell.field === '조치사항' ? (
                           <textarea
                             key={`table-action-${complaint.id}`}
                             defaultValue={
@@ -836,12 +826,12 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             }}
                             placeholder="조치사항 입력"
                             rows={2}
-                            className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            className="w-full px-2 py-1 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             style={{ fontSize: '13px' }}
                           />
                         ) : (
                           <div 
-                            className="cursor-pointer hover:bg-gray-50 p-1 rounded truncate"
+                            className="cursor-pointer hover:bg-gray-50 px-2 py-1 rounded border border-gray-200 bg-white truncate"
                             onClick={() => setEditingCell({ id: complaint.id, field: '조치사항' })}
                             title={complaint.구분 === '입실' || complaint.구분 === '퇴실'
                               ? complaint.객실이동조치 || '-'
@@ -856,6 +846,18 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                               : complaint.조치사항 || '-'}
                           </div>
                         )}</td>
+                        <td className="px-2 py-1.5 text-center whitespace-nowrap">
+                          {complaint.사진 && complaint.사진.length > 0 ? (
+                            <button
+                              onClick={() => onImageClick(complaint.사진![0])}
+                              className="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                            >
+                              {complaint.사진.length}
+                            </button>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
                       </tr>
                     );
                   })}

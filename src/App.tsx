@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { PenLine, Search, Wrench, ArrowRightLeft, ClipboardCheck, Sparkles, Bed, History, Info } from 'lucide-react';
 import { InputPage } from './components/InputPage';
 import { AllComplaintsPage } from './components/AllComplaintsPage';
 import { MaintenancePage } from './components/MaintenancePage';
@@ -11,11 +12,24 @@ import { M02Page } from './components/M02Page';
 import { M03Page } from './components/M03Page';
 import { AccommodationTypePage } from './components/AccommodationTypePage';
 import { RoomHistoryPage } from './components/RoomHistoryPage';
+import { AdminDashboard } from './components/AdminDashboard';
 import { Login } from './components/Login';
 import { Logo } from './components/Logo';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { supabase } from './utils/supabase/client';
 import { roomDatabase } from './data/roomData';
+
+const PAGE_ICONS: Record<string, (props: { className?: string }) => JSX.Element> = {
+  '입력': PenLine,
+  '전체조회': Search,
+  '영선': Wrench,
+  '객실이동': ArrowRightLeft,
+  '객실체크': ClipboardCheck,
+  '객실정비': Sparkles,
+  '숙박형태': Bed,
+  '객실히스토리': History,
+  '안내/입력': Info,
+};
 
 export interface Complaint {
   id: string;
@@ -28,7 +42,7 @@ export interface Complaint {
   객실이동조치?: string; // 객실이동 페이지 전용 조치사항
   객실정비조치?: string; // 객실정비 페이지 전용 조치사항
   관리사무소확인?: boolean; // 객실이동 페이지 관리사무소 체크박스
-  상태: '접수' | '영선팀' | '진행중' | '부서이관' | '외부업체' | '완료';
+  상태: '접수' | '영선팀' | '진행중' | '부서이관' | '외부업체' | '청소요청' | '완료';
   등록일시: string;
   완료일시?: string;
   연락일?: string;
@@ -40,8 +54,8 @@ export interface Complaint {
   운영종료일?: string; // 객실이동 페이지용
   입주일?: string; // 객실이동 페이지용
   청소예정일?: string; // 객실정비 페이지용
-  청소상태?: string; // 객실정비 상태
-  퇴실상태?: '준비' | '연락' | '퇴실' | '계약서' | '완료'; // 객실이동 페이지 퇴실 상태
+  청소상태?: string; // 객실정비 페이지 전용 정비상태
+  퇴실상태?: '준비' | '연락완료' | '퇴실완료' | '완료'; // 객실이동 페이지 퇴실 상태
   이사일?: string; // 객실이동 페이지 이사일
   계약서파일?: string; // 계약서 PDF 파일 (base64)
   계약서파일명?: string; // 계약서 파일명
@@ -77,7 +91,7 @@ export interface RoomInfo {
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
-  const [currentPage, setCurrentPage] = useState<'입력' | '전체조회' | '영선' | '객실이동' | '객실체크' | '객실정비' | '안내/입력' | '숙박형태' | '객실히스토리' | 'M01' | 'M02' | 'M03'>('입력');
+  const [currentPage, setCurrentPage] = useState<'입력' | '전체조회' | '영선' | '객실이동' | '객실체크' | '객실정비' | '안내/입력' | '숙박형태' | '객실히스토리' | 'M01' | 'M02' | 'M03' | '관리자'>('입력');
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [rooms, setRooms] = useState<RoomInfo[]>([]); // 객실정보 상태 추가
@@ -88,19 +102,69 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
 
-  // 로그인 상태를 localStorage에 저장하여 새로고침 시에도 유지
+  // Supabase 세션 복원 및 로그인 상태 유지
   useEffect(() => {
-    const savedUserId = localStorage.getItem('currentUserId');
-    if (savedUserId) {
-      setIsLoggedIn(true);
-      setCurrentUserId(savedUserId);
-    }
+    const emailLocalToId: Record<string, string> = {
+      adm: '01',
+      cs01: '02',
+      cs02: '03',
+      cs03: '04',
+      mgr01: '05',
+      mgr02: '06',
+      eng: '07',
+      mo: '08',
+      hk: '09',
+      cln: '10',
+    };
+
+    const normalizeToId = (value: string | undefined | null): string | undefined => {
+      if (!value) return undefined;
+      const v = value.toString();
+      if (/^(0[1-9]|10)$/.test(v)) return v;
+      if (emailLocalToId[v]) return emailLocalToId[v];
+      return undefined;
+    };
+
+    const getUserIdFromSession = (user: { email?: string | null; user_metadata?: { staff_id?: string } }) => {
+      const fromMeta = normalizeToId(user?.user_metadata?.staff_id);
+      if (fromMeta) return fromMeta;
+      const email = user?.email ?? '';
+      const localPart = email.split('@')[0];
+      const fromLocal = normalizeToId(localPart);
+      if (fromLocal) return fromLocal;
+      return '';
+    };
+
+    const applySession = (session: { user: { email?: string | null; user_metadata?: { staff_id?: string } } } | null) => {
+      if (!session?.user) {
+        setIsLoggedIn(false);
+        setCurrentUserId('');
+        localStorage.removeItem('currentUserId');
+        return;
+      }
+      const userId = getUserIdFromSession(session.user);
+      if (userId) {
+        setIsLoggedIn(true);
+        setCurrentUserId(userId);
+        localStorage.setItem('currentUserId', userId);
+      }
+    };
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // 역할별 메뉴에 현재 페이지가 없으면 첫 번째 허용 페이지로 이동 (화이트 스크린/되돌리기 불가 방지)
   useEffect(() => {
     if (!currentUserId) return;
-    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M01', 'M02', 'M03'];
+    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : currentUserId === '01' ? ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M01', 'M02', 'M03', '관리자'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M01', 'M02', 'M03'];
     if (allowed.length > 0 && !allowed.includes(currentPage)) {
       setCurrentPage(allowed[0] as typeof currentPage);
     }
@@ -149,7 +213,7 @@ export default function App() {
         }
         // 깨진 한글 데이터 복구 (DB에 저장된 깨진 문자열 정규화)
         const sanitized = (data as Complaint[]).map(c => {
-          const validStatuses = ['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'];
+          const validStatuses = ['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'];
           let fixedStatus = c.상태;
           if (!validStatuses.includes(fixedStatus)) {
             // 부분 매칭으로 복구 시도
@@ -158,6 +222,7 @@ export default function App() {
             else if (fixedStatus?.includes('영선')) fixedStatus = '영선팀';
             else if (fixedStatus?.includes('진행')) fixedStatus = '진행중';
             else if (fixedStatus?.includes('부서') || fixedStatus?.includes('이관')) fixedStatus = '부서이관';
+            else if (fixedStatus?.includes('청소') || fixedStatus?.includes('청요')) fixedStatus = '청소요청';
             else if (fixedStatus?.includes('완료')) fixedStatus = '완료';
             else fixedStatus = '접수'; // 기본값
             
@@ -260,7 +325,8 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
     setCurrentUserId('');
     localStorage.removeItem('currentUserId');
@@ -780,6 +846,7 @@ export default function App() {
     진행중: complaints.filter(c => c.상태 === '진행중').length,
     부서이관: complaints.filter(c => c.상태 === '부서이관').length,
     외부업체: complaints.filter(c => c.상태 === '외부업체').length,
+    청소요청: complaints.filter(c => c.상태 === '청소요청').length,
     완료: complaints.filter(c => c.상태 === '완료').length
   };
 
@@ -863,25 +930,39 @@ export default function App() {
                 </button>
               </div>
               
-              {/* M01, M02, M03 버튼 (동훈, 시우, 현석) - 각 담당자 고유업무 확인 페이지 */}
-              {currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07' && (
+              {/* 관리자 + M01, M02, M03 버튼 (01번: 관리자·동훈·시우·현석 동일 스타일) */}
+              {(currentUserId === '01' || (currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07')) && (
                 <div className="flex gap-1 border-l border-blue-400/30 pl-3">
-                  {(['M01', 'M02', 'M03'] as const).map((page) => {
-                    const label = page === 'M01' ? '동훈' : page === 'M02' ? '시우' : '현석';
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
-                          currentPage === page
-                            ? 'bg-white text-blue-600'
-                            : 'bg-white/10 text-white hover:bg-white/20'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
+                  {currentUserId === '01' && (
+                    <button
+                      onClick={() => setCurrentPage('관리자')}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
+                        currentPage === '관리자'
+                          ? 'bg-white text-blue-600'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      관리자
+                    </button>
+                  )}
+                  {currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07' && (
+                    (['M01', 'M02', 'M03'] as const).map((page) => {
+                      const label = page === 'M01' ? '동훈' : page === 'M02' ? '시우' : '현석';
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
+                            currentPage === page
+                              ? 'bg-white text-blue-600'
+                              : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>
@@ -898,19 +979,23 @@ export default function App() {
               : currentUserId === '07'
               ? ['영선']
               : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력']
-            ).map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page as typeof currentPage)}
-                className={`px-5 py-2.5 text-base font-medium whitespace-nowrap transition-all rounded-lg ${
-                  currentPage === page
-                    ? 'text-white bg-blue-600 shadow-sm'
-                    : 'text-blue-100 hover:text-white hover:bg-blue-600/40'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+            ).map((page) => {
+              const Icon = PAGE_ICONS[page];
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page as typeof currentPage)}
+                  className={`px-5 py-2.5 text-base font-medium whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 ${
+                    currentPage === page
+                      ? 'text-white bg-blue-600 shadow-sm'
+                      : 'text-blue-100 hover:text-white hover:bg-blue-600/40'
+                  }`}
+                >
+                  {Icon && <Icon className="w-4 h-4 shrink-0" />}
+                  {page}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1057,6 +1142,10 @@ export default function App() {
             }}
             onNavigateToInput={() => setCurrentPage('입력')}
           />
+        )}
+
+        {currentPage === '관리자' && currentUserId === '01' && (
+          <AdminDashboard complaints={complaints} />
         )}
         </ErrorBoundary>
       </div>

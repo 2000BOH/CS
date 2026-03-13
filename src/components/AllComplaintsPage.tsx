@@ -10,6 +10,7 @@ interface AllComplaintsPageProps {
     진행중: number;
     부서이관: number;
     외부업체: number;
+    청소요청: number;
     완료: number;
   };
   categories: {

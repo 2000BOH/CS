@@ -253,6 +253,7 @@ export function ComplaintForm({ onSubmit, selectedRoom, onRoomChange, roomAccomm
                 <option value="진행중">진행중</option>
                 <option value="부서이관">부서이관</option>
                 <option value="외부업체">외부업체</option>
+                <option value="청소요청">청소요청</option>
                 <option value="완료">완료</option>
               </select>
             </div>

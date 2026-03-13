@@ -322,7 +322,7 @@ export function RoomCheckPage({ complaints, onUpdate, onSelectRoom, currentUserI
               <ClipboardCheck className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-gray-900">객실체크</h2>
+            <h2 className="text-xl font-bold text-gray-900">객실체크 (완료/미완료)</h2>
               <p className="text-sm text-gray-600 mt-0.5">
                 전체 {roomCheckList.length}건 | 표시 {sortedData.length}건
               </p>
@@ -361,7 +361,7 @@ export function RoomCheckPage({ complaints, onUpdate, onSelectRoom, currentUserI
                 <tr>
                   <th className="px-1 py-1.5 text-left text-xs font-bold whitespace-nowrap w-8">번호</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-8">우선</th>
-                  <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-12">상태</th>
+                  <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-12">완료</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-10">차수</th>
                   <th className="px-1 py-1.5 text-left text-xs font-bold whitespace-nowrap w-12">호실</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-14">이상없음</th>
@@ -677,7 +677,7 @@ export function RoomCheckPage({ complaints, onUpdate, onSelectRoom, currentUserI
                 <tr>
                   <th className="px-1 py-1.5 text-left text-xs font-bold whitespace-nowrap w-8">번호</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-8">우선</th>
-                  <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-12">상태</th>
+                  <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-12">완료</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-10">차수</th>
                   <th className="px-1 py-1.5 text-left text-xs font-bold whitespace-nowrap w-12">호실</th>
                   <th className="px-1 py-1.5 text-center text-xs font-bold whitespace-nowrap w-14">이상없음</th>

@@ -28,7 +28,7 @@ interface RoomMoveData {
   등록자: string;
   운영종료일?: string;
   입주일?: string;
-  퇴실상태?: '준비' | '연락' | '퇴실' | '계약서' | '완료';
+  퇴실상태?: '준비' | '연락완료' | '퇴실완료' | '완료';
   이사일?: string;
   사진?: string[];
   완료일시?: string;
@@ -491,6 +491,7 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
       '진행중': 'bg-orange-100 text-orange-700 border-orange-300',
       '부서이관': 'bg-purple-100 text-purple-700 border-purple-300',
       '외부업체': 'bg-indigo-100 text-indigo-700 border-indigo-300',
+      '청소요청': 'bg-sky-100 text-sky-700 border-sky-300',
       '완료': 'bg-green-100 text-green-700 border-green-300'
     };
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
@@ -675,13 +676,12 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                   </div>
                   <div className="flex items-center gap-1">
                     {/* 퇴실상태 버튼 그룹 - 상단에 작게 배치 */}
-                    {(['준비', '연락', '퇴실', '계약서', '완료'] as const).map((status, index) => {
-                      const currentIndex = ['준비', '연락', '퇴실', '계약서', '완료'].indexOf(data.퇴실상태 || '준비');
+                    {(['준비', '연락완료', '퇴실완료', '완료'] as const).map((status, index) => {
+                      const currentIndex = ['준비', '연락완료', '퇴실완료', '완료'].indexOf(data.퇴실상태 || '준비');
                       const isPast = index < currentIndex;  // 현재 상태는 포함하지 않음
                       const isActive = data.퇴실상태 === status;
                       
-                      // 표시 레이블 변경: "계약서" → "작성"
-                      const displayLabel = status === '계약서' ? '작성' : status;
+                      const displayLabel = status;
                       
                       return (
                         <div key={`${data.id}-${status}`} className="flex items-center gap-1">
@@ -936,15 +936,14 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                           <select
                             value={data.퇴실상태 || '준비'}
                             onChange={(e) => {
-                              const value = e.target.value as '준비' | '연락' | '퇴실' | '계약서' | '완료';
+                              const value = e.target.value as '준비' | '연락완료' | '퇴실완료' | '완료';
                               handleDataUpdate(data, { 퇴실상태: value });
                             }}
                             className="px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="준비">준비</option>
-                            <option value="연락">연락</option>
-                            <option value="퇴실">퇴실</option>
-                            <option value="계약서">계약서</option>
+                            <option value="연락완료">연락완료</option>
+                            <option value="퇴실완료">퇴실완료</option>
                             <option value="완료">완료</option>
                           </select>
                         </div>
@@ -1091,15 +1090,14 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                           <select
                             value={data.퇴실상태 || '준비'}
                             onChange={(e) => {
-                              const value = e.target.value as '준비' | '연락' | '퇴실' | '계약서' | '완료';
+                              const value = e.target.value as '준비' | '연락완료' | '퇴실완료' | '완료';
                               handleDataUpdate(data, { 퇴실상태: value });
                             }}
                             className="px-2 py-1 border border-gray-300 rounded text-xs bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="준비">준비</option>
-                            <option value="연락">연락</option>
-                            <option value="퇴실">퇴실</option>
-                            <option value="계약서">계약서</option>
+                            <option value="연락완료">연락완료</option>
+                            <option value="퇴실완료">퇴실완료</option>
                             <option value="완료">완료</option>
                           </select>
                         </div>

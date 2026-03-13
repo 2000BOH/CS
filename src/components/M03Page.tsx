@@ -3,6 +3,7 @@ import { Calendar, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'luc
 import { format, isToday, isThisWeek, isThisMonth, parseISO, isBefore, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { Complaint, RoomInfo } from '../App';
+import { StaffDailyNotePanel } from './StaffDailyNotePanel';
 
 interface M03PageProps {
   complaints: Complaint[];
@@ -117,7 +118,8 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
   const noTypeRooms = rooms.filter(r => !r.숙박형태 || r.숙박형태.trim() === '');
 
   return (
-    <div className="space-y-4">
+    <div className="flex gap-4 items-start">
+      <div className="flex-1 min-w-0 space-y-4">
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <Calendar className="w-8 h-8" />
@@ -319,6 +321,8 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
           </div>
         )}
       </div>
+      </div>
+      <StaffDailyNotePanel staffId="04" staffName="현석" />
     </div>
   );
 }

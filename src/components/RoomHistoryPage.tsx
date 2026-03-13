@@ -97,6 +97,7 @@ const STATUS_COLOR: Record<string, string> = {
   '진행중':   'bg-orange-100 text-orange-700 border border-orange-200',
   '부서이관': 'bg-purple-100 text-purple-700 border border-purple-200',
   '외부업체': 'bg-indigo-100 text-indigo-700 border border-indigo-200',
+  '청소요청': 'bg-sky-100 text-sky-700 border border-sky-200',
   '완료':     'bg-green-100 text-green-700 border border-green-200',
 };
 
@@ -400,7 +401,7 @@ export function RoomHistoryPage({ complaints, rooms, onUpdate, onImageClick, sel
                             <div>
                               <label className="block text-xs font-semibold text-gray-600 mb-1">처리상태</label>
                               <div className="flex gap-1 flex-wrap">
-                                {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'] as const).map(st => (
+                                {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'] as const).map(st => (
                                   <button key={st} onClick={() => handleStatusChange(complaint.id, st)}
                                     className={`px-2 py-1 rounded text-xs font-semibold transition-colors ${
                                       complaint.상태 === st
