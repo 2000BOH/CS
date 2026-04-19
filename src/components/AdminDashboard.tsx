@@ -11,22 +11,22 @@ interface AdminDashboardProps {
 
 // 직원 정보
 const STAFF = [
-  { id: 'all',  name: '전체',  color: 'bg-gray-500',   light: 'bg-gray-50',  border: 'border-gray-300', text: 'text-gray-700' },
-  { id: '동훈', name: '동훈',  color: 'bg-blue-600',   light: 'bg-blue-50',  border: 'border-blue-300', text: 'text-blue-700' },
-  { id: '시우', name: '시우',  color: 'bg-purple-600', light: 'bg-purple-50',border: 'border-purple-300',text: 'text-purple-700' },
-  { id: '현석', name: '현석',  color: 'bg-green-600',  light: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
+  { id: 'all', name: '전체', color: 'bg-gray-500', light: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-700' },
+  { id: '태형', name: '태형', color: 'bg-green-600', light: 'bg-green-50', border: 'border-green-300', text: 'text-green-700' },
+  { id: '아름', name: '아름', color: 'bg-purple-600', light: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-700' },
+  { id: '동훈', name: '동훈', color: 'bg-blue-600', light: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-700' },
 ];
 
 // 등록자 ID → 이름 매핑
 const ID_TO_NAME: Record<string, string> = {
-  '01': '수용', '02': '동훈', '03': '시우', '04': '현석',
-  '05': '아름', '06': '남식', '07': '영선', '08': '관리사무소',
+  '01': '수용', '02': '동훈', '03': '아름', '04': '태형',
+  '05': '아름(매니저)', '06': '남식', '07': '영선', '08': '관리사무소',
   '09': '키핑', '10': '키핑팀',
 };
 
 // M0x 담당자 매핑
 const M_STAFF: Record<string, string> = {
-  M01: '동훈', M02: '시우', M03: '현석',
+  M01: '동훈', M02: '아름', M03: '태형',
 };
 
 type DateRange = '오늘' | '어제' | '내일' | '이번주' | '직접입력';
@@ -84,7 +84,7 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
   const [customDate, setCustomDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'업무일지' | '담당자확인' | '완료현황'>('업무일지');
-  const [staffNotes, setStaffNotes] = useState<Record<string, { 중요사항: string; 특이사항: string }>>({ '02': { 중요사항: '', 특이사항: '' }, '03': { 중요사항: '', 특이사항: '' }, '04': { 중요사항: '', 특이사항: '' } });
+  const [staffNotes, setStaffNotes] = useState<Record<string, { 중요사항: string; 특이사항: string }>>({ '04': { 중요사항: '', 특이사항: '' }, '03': { 중요사항: '', 특이사항: '' }, '02': { 중요사항: '', 특이사항: '' } });
 
   const range = useMemo(() => getDateRange(dateRange, customDate), [dateRange, customDate]);
 
@@ -106,7 +106,7 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
         if (error.code === 'PGRST116' || error.message?.includes('does not exist')) return;
         return;
       }
-      const next: Record<string, { 중요사항: string; 특이사항: string }> = { '02': { 중요사항: '', 특이사항: '' }, '03': { 중요사항: '', 특이사항: '' }, '04': { 중요사항: '', 특이사항: '' } };
+      const next: Record<string, { 중요사항: string; 특이사항: string }> = { '04': { 중요사항: '', 특이사항: '' }, '03': { 중요사항: '', 특이사항: '' }, '02': { 중요사항: '', 특이사항: '' } };
       (data || []).forEach((row: any) => {
         next[row.staff_id] = { 중요사항: row.중요사항 || '', 특이사항: row.특이사항 || '' };
       });
@@ -130,9 +130,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
     const registrantName = ID_TO_NAME[c.등록자] || c.등록자;
     if (registrantName === staff) return true;
     // M0x 담당자확인 여부
+    if (staff === '태형' && c.담당자확인_M03) return true;
+    if (staff === '아름' && c.담당자확인_M02) return true;
     if (staff === '동훈' && c.담당자확인_M01) return true;
-    if (staff === '시우' && c.담당자확인_M02) return true;
-    if (staff === '현석' && c.담당자확인_M03) return true;
     return false;
   };
 
@@ -147,9 +147,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
     return complaints.filter(c => {
       if (!inRange(c)) return false;
       if (selectedStaff === 'all') return c.담당자확인_M01 || c.담당자확인_M02 || c.담당자확인_M03;
+      if (selectedStaff === '태형') return c.담당자확인_M03;
+      if (selectedStaff === '아름') return c.담당자확인_M02;
       if (selectedStaff === '동훈') return c.담당자확인_M01;
-      if (selectedStaff === '시우') return c.담당자확인_M02;
-      if (selectedStaff === '현석') return c.담당자확인_M03;
       return false;
     });
   }, [complaints, range, selectedStaff]);
@@ -173,9 +173,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
       const items = complaints.filter(c => inRange(c) && byStaff(c, s.id));
       const done = items.filter(c => c.상태 === '완료').length;
       const confirmed = complaints.filter(c => inRange(c) && (
-        (s.id === '동훈' && c.담당자확인_M01) ||
-        (s.id === '시우' && c.담당자확인_M02) ||
-        (s.id === '현석' && c.담당자확인_M03)
+        (s.id === '태형' && c.담당자확인_M03) ||
+        (s.id === '아름' && c.담당자확인_M02) ||
+        (s.id === '동훈' && c.담당자확인_M01)
       )).length;
       return { ...s, total: items.length, done, confirmed };
     });
@@ -194,7 +194,7 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
           <ClipboardList className="w-8 h-8 text-black" />
           <h1 className="text-2xl font-bold text-black">관리자 업무일지</h1>
         </div>
-        <p className="text-slate-100 text-sm">동훈 · 시우 · 현석 업무 현황 모니터링</p>
+        <p className="text-slate-100 text-sm">태형 · 아름 · 동훈 업무 현황 모니터링</p>
       </div>
 
       {/* 필터 영역 */}
@@ -209,11 +209,10 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
             <button
               key={r}
               onClick={() => setDateRange(r)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                dateRange === r
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${dateRange === r
                   ? 'bg-blue-600 text-white ring-2 ring-blue-300 shadow-md'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {r}
             </button>
@@ -239,11 +238,10 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
             <button
               key={s.id}
               onClick={() => setSelectedStaff(s.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                selectedStaff === s.id
+              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${selectedStaff === s.id
                   ? `${s.color} text-white`
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               {s.name}
             </button>
@@ -251,7 +249,7 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* 동훈 · 시우 · 현석 일일 메모 (선택한 날짜 기준) */}
+      {/* 태형 · 아름 · 동훈 일일 메모 (선택한 날짜 기준) */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
           <FileText className="w-4 h-4 text-blue-600" />
@@ -259,9 +257,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
+            { id: '04', name: '태형', border: 'border-green-200', bg: 'bg-green-50' },
+            { id: '03', name: '아름', border: 'border-purple-200', bg: 'bg-purple-50' },
             { id: '02', name: '동훈', border: 'border-blue-200', bg: 'bg-blue-50' },
-            { id: '03', name: '시우', border: 'border-purple-200', bg: 'bg-purple-50' },
-            { id: '04', name: '현석', border: 'border-green-200', bg: 'bg-green-50' },
           ].map(({ id, name, border, bg }) => (
             <div key={id} className={`rounded-lg border-2 ${border} ${bg} p-3`}>
               <div className="font-bold text-gray-900 text-sm mb-2">{name}</div>
@@ -286,11 +284,10 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
           <button
             key={s.id}
             onClick={() => setSelectedStaff(selectedStaff === s.id ? 'all' : s.id)}
-            className={`rounded-lg border-2 p-4 text-left transition-all ${
-              selectedStaff === s.id
+            className={`rounded-lg border-2 p-4 text-left transition-all ${selectedStaff === s.id
                 ? `${s.border} ${s.light} shadow-md`
                 : 'border-gray-200 bg-white hover:border-gray-300'
-            }`}
+              }`}
           >
             <div className={`text-base font-bold mb-2 ${s.text}`}>{s.name}</div>
             <div className="space-y-1 text-xs">
@@ -318,11 +315,10 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === tab
                   ? 'border-b-2 border-slate-700 text-slate-700'
                   : 'text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               {tab}
               <span className="ml-1.5 text-xs text-gray-400">
@@ -351,9 +347,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
                     const registrantName = ID_TO_NAME[c.등록자] || c.등록자;
                     const isExpanded = expandedId === c.id;
                     const confirmedBy = [
+                      c.담당자확인_M03 ? '태형' : null,
+                      c.담당자확인_M02 ? '아름' : null,
                       c.담당자확인_M01 ? '동훈' : null,
-                      c.담당자확인_M02 ? '시우' : null,
-                      c.담당자확인_M03 ? '현석' : null,
                     ].filter(Boolean).join(', ');
 
                     return (
@@ -422,7 +418,7 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
           {activeTab === '담당자확인' && (
             <div>
               <p className="text-xs text-gray-500 mb-3">
-                M01(동훈) · M02(시우) · M03(현석) 담당자확인 완료 항목 {confirmedItems.length}건
+                M03(태형) · M02(아름) · M01(동훈) 담당자확인 완료 항목 {confirmedItems.length}건
               </p>
               {confirmedItems.length === 0 ? (
                 <div className="text-center py-10 text-gray-400">
@@ -433,9 +429,9 @@ export function AdminDashboard({ complaints }: AdminDashboardProps) {
                 <div className="space-y-2">
                   {confirmedItems.map(c => {
                     const who = [
+                      c.담당자확인_M03 ? <span key="m03" className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">태형</span> : null,
+                      c.담당자확인_M02 ? <span key="m02" className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">아름</span> : null,
                       c.담당자확인_M01 ? <span key="m01" className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium">동훈</span> : null,
-                      c.담당자확인_M02 ? <span key="m02" className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">시우</span> : null,
-                      c.담당자확인_M03 ? <span key="m03" className="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">현석</span> : null,
                     ].filter(Boolean);
                     return (
                       <div key={c.id} className="flex items-center justify-between gap-2 border border-gray-200 rounded-lg px-4 py-3 bg-white">

@@ -4,11 +4,9 @@ interface StatsSidebarProps {
   stats: {
     전체: number;
     접수: number;
-    영선팀: number;
-    진행중: number;
-    부서이관: number;
+    처리중: number;
+    영선이관: number;
     외부업체: number;
-    청소요청: number;
     완료: number;
   };
   categories: {
@@ -45,11 +43,9 @@ export function StatsSidebar({
   const statusButtons = [
     { key: '전체', label: '전체', color: 'bg-slate-600', textColor: 'text-slate-600', count: stats.전체 },
     { key: '접수', label: '접수', color: 'bg-blue-500', textColor: 'text-blue-600', count: stats.접수 },
-    { key: '영선팀', label: '영선팀', color: 'bg-teal-500', textColor: 'text-teal-600', count: stats.영선팀 },
-    { key: '진행중', label: '진행중', color: 'bg-orange-500', textColor: 'text-orange-600', count: stats.진행중 },
-    { key: '부서이관', label: '부서이관', color: 'bg-purple-500', textColor: 'text-purple-600', count: stats.부서이관 },
+    { key: '처리중', label: '처리중', color: 'bg-orange-500', textColor: 'text-orange-600', count: stats.처리중 },
+    { key: '영선이관', label: '영선이관', color: 'bg-teal-500', textColor: 'text-teal-600', count: stats.영선이관 },
     { key: '외부업체', label: '외부업체', color: 'bg-indigo-500', textColor: 'text-indigo-600', count: stats.외부업체 },
-    { key: '청소요청', label: '청소요청', color: 'bg-sky-500', textColor: 'text-sky-600', count: stats.청소요청 },
     { key: '완료', label: '완료', color: 'bg-green-500', textColor: 'text-green-600', count: stats.완료 },
   ];
 

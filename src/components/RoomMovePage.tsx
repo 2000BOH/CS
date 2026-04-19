@@ -83,8 +83,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
 
   // 🔥 핵심 로직: 입실/퇴실 민원 + rooms의 운영종료일을 기준으로 데이터 병합
   const roomMoveDataList: RoomMoveData[] = useMemo(() => {
-    console.log('🔄 roomMoveDataList 재계산 시작');
-    console.log('📊 rooms:', rooms.length, 'complaints:', complaints.length);
     
     const result: RoomMoveData[] = [];
     const processedKeys = new Set<string>(); // 중복 방지용
@@ -98,7 +96,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
         const uniqueKey = `${차수숫자}-${호실숫자}`;
         
         if (!processedKeys.has(uniqueKey)) {
-          console.log('✅ 입실/퇴실 민원 발견:', complaint.차수, complaint.호실, complaint.구분);
           processedKeys.add(uniqueKey);
           result.push({
             ...complaint,
@@ -118,7 +115,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
         
         // 이미 처리한 차수+호실이면 스킵
         if (processedKeys.has(uniqueKey)) {
-          console.log('⚠️ 중복 차수+호실 발견, 스킵:', room.차수, room.호수);
           return;
         }
         processedKeys.add(uniqueKey);
@@ -132,14 +128,12 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
         
         if (matchedComplaint) {
           // 실제 민원이 있는 경우: 민원 데이터 사용
-          console.log('✅ 민원 발견:', room.차수, room.호수, matchedComplaint.id);
           result.push({
             ...matchedComplaint,
             hasComplaint: true,
           });
         } else {
           // 민원이 없는 경우: 객실정보로 가상 데이터 생성
-          console.log('📌 민원 없음 (가상):', room.차수, room.호수);
           result.push({
             id: `mock-${room.차수}-${room.호수}`, // 유니크한 ID 생성
             차수: room.차수,
@@ -161,8 +155,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
     
     return result;
   }, [rooms, complaints]);
-
-  console.log('📋 최종 roomMoveDataList:', roomMoveDataList.length, '개');
 
   // 날짜 비교 함수
   const isToday = (dateString: string | undefined) => {
@@ -279,21 +271,12 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
 
   // 🔥 핵심 업데이트 함수: 차수+호실 기준으로 업데이트
   const handleDataUpdate = (data: RoomMoveData, updates: Partial<Complaint>) => {
-    console.log('🔄 handleDataUpdate 호출:', { 
-      id: data.id,
-      차수: data.차수, 
-      호실: data.호실, 
-      hasComplaint: data.hasComplaint,
-      updates 
-    });
     
     // hasComplaint가 true이고 ID가 mock이 아닌 경우, 직접 ID로 업데이트
     if (data.hasComplaint && !data.id.startsWith('mock-')) {
-      console.log('✅ 실제 민원 ID로 직접 업데이트:', data.id);
       onUpdate(data.id, updates);
     } else {
       // 가상 데이터거나 민원이 없는 경우, 차수+호실로 업데이트
-      console.log('📝 차수+호실 기준으로 업데이트');
       onRoomMoveDataUpdate(data.차수, data.호실, updates);
     }
   };
@@ -364,7 +347,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
 
   // 우선처리 토글
   const togglePriority = (data: RoomMoveData) => {
-    console.log('⭐ 우선처리 토글:', data.차수, data.호실, '현재:', data.우선처리);
     handleDataUpdate(data, { 우선처리: !data.우선처리 });
   };
 
@@ -688,7 +670,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('퇴실상태 버튼 클릭:', status, '차수:', data.차수, '호실:', data.호실);
                               handleDataUpdate(data, { 퇴실상태: status });
                             }}
                             className={`px-2 py-1 rounded-lg transition-colors text-xs font-medium shadow-sm flex-shrink-0 ${
@@ -787,7 +768,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                             mode="single"
                             selected={data.이사일 ? new Date(data.이사일) : undefined}
                             onSelect={(date) => {
-                              console.log('이사일 선택:', date, '차수:', data.차수, '호실:', data.호실);
                               handleDataUpdate(data, { 이사일: date?.toISOString() });
                               setMoveDatePopovers({...moveDatePopovers, [data.id]: false});
                             }}
@@ -806,7 +786,6 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
                         setLocalActionText(prev => ({ ...prev, [data.id]: e.target.value }));
                       }}
                       onBlur={(e) => {
-                        console.log('객실이동 조치 저장 (blur):', e.target.value, '차수:', data.차수, '호실:', data.호실);
                         handleDataUpdate(data, { 객실이동조치: e.target.value });
                       }}
                       onClick={(e) => e.stopPropagation()}

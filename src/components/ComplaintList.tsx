@@ -72,12 +72,13 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
     switch (status) {
       case '접수':
         return <AlertCircle className="w-5 h-5 text-blue-500" />;
-      case '영선팀':
-        return <Clock className="w-5 h-5 text-teal-500" />;
+      case '처리중':
       case '진행중':
         return <Clock className="w-5 h-5 text-orange-500" />;
+      case '영선이관':
+      case '영선팀':
       case '부서이관':
-        return <AlertCircle className="w-5 h-5 text-purple-500" />;
+        return <Clock className="w-5 h-5 text-teal-500" />;
       case '외부업체':
         return <AlertCircle className="w-5 h-5 text-indigo-500" />;
       case '완료':
@@ -91,12 +92,13 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
     switch (status) {
       case '접수':
         return 'bg-blue-100 text-blue-700 border-blue-200';
-      case '영선팀':
-        return 'bg-teal-100 text-teal-700 border-teal-200';
+      case '처리중':
       case '진행중':
         return 'bg-orange-100 text-orange-700 border-orange-200';
+      case '영선이관':
+      case '영선팀':
       case '부서이관':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
+        return 'bg-teal-100 text-teal-700 border-teal-200';
       case '외부업체':
         return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       case '완료':
@@ -110,10 +112,8 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
     const updates: Partial<Complaint> = { 상태: newStatus };
 
     // 상태에 따라 구분 자동 매핑 (전페이지 공통 상태 유지)
-    if (newStatus === '영선팀') {
+    if (newStatus === '영선이관' || newStatus === '영선팀') {
       updates.구분 = '영선';
-    } else if (newStatus === '청소요청') {
-      updates.구분 = '청소';
     }
 
     if (newStatus === '완료') {
@@ -181,6 +181,8 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
             font-size: 11px;
           }
           .status-접수 { background-color: #dbeafe; color: #1e40af; }
+          .status-처리중 { background-color: #fed7aa; color: #c2410c; }
+          .status-영선이관 { background-color: #ccfbf1; color: #0f766e; }
           .status-영선팀 { background-color: #ccfbf1; color: #0f766e; }
           .status-진행중 { background-color: #fed7aa; color: #c2410c; }
           .status-부서이관 { background-color: #e9d5ff; color: #6b21a8; }
@@ -464,11 +466,9 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                               className="w-full px-2 py-1.5 border border-gray-300 rounded text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="접수">접수</option>
-                              <option value="영선팀">영선팀</option>
-                              <option value="진행중">진행중</option>
-                              <option value="부서이관">부서이관</option>
+                              <option value="처리중">처리중</option>
+                              <option value="영선이관">영선이관</option>
                               <option value="외부업체">외부업체</option>
-                              <option value="청소요청">청소요청</option>
                               <option value="완료">완료</option>
                             </select>
                           </div>
@@ -646,11 +646,9 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                               className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                               <option value="접수">접수</option>
-                              <option value="영선팀">영선팀</option>
-                              <option value="진행중">진행중</option>
-                              <option value="부서이관">부서이관</option>
+                              <option value="처리중">처리중</option>
+                              <option value="영선이관">영선이관</option>
                               <option value="외부업체">외부업체</option>
-                              <option value="청소요청">청소요청</option>
                               <option value="완료">완료</option>
                             </select>
                           </div>
@@ -705,9 +703,8 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             style={{ fontSize: '13px' }}
                           >
                             <option value="접수">접수</option>
-                            <option value="영선팀">영선팀</option>
-                            <option value="진행중">진행중</option>
-                            <option value="부서이관">부서이관</option>
+                            <option value="처리중">처리중</option>
+                            <option value="영선이관">영선이관</option>
                             <option value="외부업체">외부업체</option>
                             <option value="완료">완료</option>
                           </select>

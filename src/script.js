@@ -186,7 +186,6 @@ async function loadComplaints() {
     
     if (error) {
       if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-        console.log('테이블이 아직 생성되지 않았습니다. 안내 페이지에서 SQL을 실행하세요.');
         complaints = [];
         return;
       }

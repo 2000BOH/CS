@@ -42,7 +42,7 @@ export interface Complaint {
   객실이동조치?: string; // 객실이동 페이지 전용 조치사항
   객실정비조치?: string; // 객실정비 페이지 전용 조치사항
   관리사무소확인?: boolean; // 객실이동 페이지 관리사무소 체크박스
-  상태: '접수' | '영선팀' | '진행중' | '부서이관' | '외부업체' | '청소요청' | '완료';
+  상태: '접수' | '처리중' | '영선이관' | '외부업체' | '완료' | '영선팀' | '진행중' | '부서이관' | '청소요청';
   등록일시: string;
   완료일시?: string;
   연락일?: string;
@@ -164,7 +164,7 @@ export default function App() {
   // 역할별 메뉴에 현재 페이지가 없으면 첫 번째 허용 페이지로 이동 (화이트 스크린/되돌리기 불가 방지)
   useEffect(() => {
     if (!currentUserId) return;
-    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : currentUserId === '01' ? ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M01', 'M02', 'M03', '관리자'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M01', 'M02', 'M03'];
+    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : currentUserId === '01' ? ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01', '관리자'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01'];
     if (allowed.length > 0 && !allowed.includes(currentPage)) {
       setCurrentPage(allowed[0] as typeof currentPage);
     }
@@ -188,10 +188,9 @@ export default function App() {
       if (error) {
         // 테이블이 없는 경우 무시
         if (error.code === 'PGRST205') {
-          console.log('테이블이 아직 생성되지 않았습니다. 안내 페이지에서 설정 방법을 확인하세요.');
           return;
         }
-        
+
         // 컬럼이 없는 경우 경고 표시하지만 계속 진행
         if (error.message?.includes('column') || error.code === 'PGRST204') {
           console.warn('⚠️ 데이터베이스 컬럼이 없습니다:', error.message);
@@ -200,7 +199,7 @@ export default function App() {
           setComplaints([]);
           return;
         }
-        
+
         console.error('민원 데이터 로드 오류:', error);
         return;
       }
@@ -208,30 +207,26 @@ export default function App() {
       if (data) {
         // 🔍 디버깅: 첫 번째 데이터의 구조 확인
         if (data.length > 0) {
-          console.log('📊 첫 번째 민원 데이터 샘플:', data[0]);
-          console.log('📋 데이터 컬럼:', Object.keys(data[0]));
         }
         // 깨진 한글 데이터 복구 (DB에 저장된 깨진 문자열 정규화)
         const sanitized = (data as Complaint[]).map(c => {
-          const validStatuses = ['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'];
+          const validStatuses = ['접수', '처리중', '영선이관', '외부업체', '완료', '영선팀', '진행중', '부서이관', '청소요청'];
           let fixedStatus = c.상태;
           if (!validStatuses.includes(fixedStatus)) {
             // 부분 매칭으로 복구 시도
-            if (fixedStatus?.includes('부업체') || fixedStatus?.includes('외부')) fixedStatus = '외부업체';
+            if (fixedStatus?.includes('외부')) fixedStatus = '외부업체';
             else if (fixedStatus?.includes('접수') || fixedStatus?.includes('접')) fixedStatus = '접수';
-            else if (fixedStatus?.includes('영선')) fixedStatus = '영선팀';
-            else if (fixedStatus?.includes('진행')) fixedStatus = '진행중';
-            else if (fixedStatus?.includes('부서') || fixedStatus?.includes('이관')) fixedStatus = '부서이관';
-            else if (fixedStatus?.includes('청소') || fixedStatus?.includes('청요')) fixedStatus = '청소요청';
+            else if (fixedStatus?.includes('영선이관')) fixedStatus = '영선이관';
+            else if (fixedStatus?.includes('영선')) fixedStatus = '영선이관';
+            else if (fixedStatus?.includes('처리') || fixedStatus?.includes('진행')) fixedStatus = '처리중';
+            else if (fixedStatus?.includes('이관')) fixedStatus = '영선이관';
             else if (fixedStatus?.includes('완료')) fixedStatus = '완료';
             else fixedStatus = '접수'; // 기본값
-            
+
             if (fixedStatus !== c.상태) {
-              console.log(`🔧 깨진 상태 복구: "${c.상태}" → "${fixedStatus}" (ID: ${c.id})`);
               // DB도 자동 복구
               supabase.from('complaints').update({ 상태: fixedStatus }).eq('id', c.id).then(({ error }) => {
                 if (error) console.warn('DB 상태 복구 실패:', error);
-                else console.log(`✅ DB 상태 복구 완료: ${c.id}`);
               });
             }
           }
@@ -255,7 +250,6 @@ export default function App() {
       if (error) {
         // 테이블이 없는 경우 무시
         if (error.code === 'PGRST205') {
-          console.log('📌 rooms 테이블이 아직 생성되지 않았습니다. 안내 페이지에서 객실정보를 등록하세요.');
           return;
         }
         console.error('객실정보 로드 오류:', error);
@@ -263,18 +257,11 @@ export default function App() {
       }
 
       if (data) {
-        console.log('✅ 객실정보 로드 성공:', data.length, '개');
-        
+
         // 원본 DB 데이터 구조 확인
         if (data.length > 0) {
-          console.log('🔍 rooms 원본 DB 데이터 샘플:', {
-            전체컬럼: Object.keys(data[0]),
-            첫번째: data[0],
-            차수타입: typeof data[0].차수,
-            호수타입: typeof (data[0] as any).호수,
-          });
         }
-        
+
         // RoomInfo 타입으로 변환하여 roomDatabase에 동기화
         const roomInfos = data.map((room: any) => ({
           차수: String(room.차수 ?? ''),
@@ -283,22 +270,17 @@ export default function App() {
           전화번호: room.임차인연락처 || '',
           숙박형태: room.숙박형태 || '',
           타입: room.타입 || '', // 타입 정보 추가
+          운영종료일: room.운영종료일 || '',
           이전임차인: room.이전임차인 || '',
           이전임차인연락처: room.이전임차인연락처 || '',
           변경일시: room.변경일시 || '',
         }));
-        
+
         // roomDatabase 업데이트
         roomDatabase.splice(0, roomDatabase.length, ...roomInfos);
-        console.log('📋 roomDatabase 동기화 완료:', roomDatabase.length, '개');
         if (roomInfos.length > 0) {
-          console.log('📋 roomDatabase 변환 후 샘플:', {
-            차수: roomInfos[0].차수, 차수타입: typeof roomInfos[0].차수,
-            호실: roomInfos[0].호실, 호실타입: typeof roomInfos[0].호실,
-            숙박형태: roomInfos[0].숙박형태,
-          });
         }
-        
+
         setRooms(data as RoomInfo[]);
       }
     } catch (err) {
@@ -310,7 +292,7 @@ export default function App() {
     setIsLoggedIn(true);
     setCurrentUserId(userId);
     localStorage.setItem('currentUserId', userId);
-    
+
     // 10번 로그인 시 객실정비 페이지로 이동
     if (userId === '10') {
       setCurrentPage('객실정비');
@@ -336,13 +318,13 @@ export default function App() {
     // 객실 정보에서 운영종료일 자동 추가
     const 차수숫자 = complaint.차수.replace(/[^0-9]/g, '');
     const 호실숫자 = complaint.호실.replace(/[^0-9]/g, '');
-    
+
     const matchedRoom = rooms.find(room => {
       const room차수 = String(room.차수).replace(/[^0-9]/g, '');
       const room호수 = String(room.호수).replace(/[^0-9]/g, '');
       return room차수 === 차수숫자 && room호수 === 호실숫자;
     });
-    
+
     const newComplaint: Complaint = {
       ...complaint,
       id: Date.now().toString(),
@@ -382,7 +364,6 @@ export default function App() {
       if (error) {
         // 테이블이 없는 경우 로컬 상태로만 작동
         if (error.code === 'PGRST205') {
-          console.log('테이블이 아직 생성되지 않았습니다. 로컬 상태로만 작동합니다.');
           setComplaints([newComplaint, ...complaints]);
           return;
         }
@@ -400,8 +381,7 @@ export default function App() {
   };
 
   const updateComplaint = async (id: string, updates: Partial<Complaint>) => {
-    console.log('🔄 updateComplaint 호출:', { id, updates });
-    
+
     try {
       const { error } = await supabase
         .from('complaints')
@@ -411,27 +391,26 @@ export default function App() {
       if (error) {
         // 테이블이 없는 경우 로컬 상태로만 작동
         if (error.code === 'PGRST205') {
-          console.log('테이블이 아직 생성되지 않았습니다. 컬 상태로만 작동합니다.');
-          setComplaints(prevComplaints => 
-            prevComplaints.map(c => 
+          setComplaints(prevComplaints =>
+            prevComplaints.map(c =>
               c.id === id ? { ...c, ...updates } : c
             )
           );
           return;
         }
-        
+
         // 컬럼이 는 경우 (PGRST204) - 로컬 상태만 업데이트하고 경고 표시
         if (error.code === 'PGRST204') {
           console.warn('⚠️ 데이베이스 컬럼이 없습니다:', error.message);
           console.warn('📌 안내/입력 페이지에서 SQL 마이그레이션을 실행하세요.');
-          
+
           // 로컬 상태는 업데이트 (UI에는 표시되도록)
-          setComplaints(prevComplaints => 
-            prevComplaints.map(c => 
+          setComplaints(prevComplaints =>
+            prevComplaints.map(c =>
               c.id === id ? { ...c, ...updates } : c
             )
           );
-          
+
           // 퇴실상태나 이사일 업데이트 시에만 한 번만 경고
           if (updates.퇴실상태 || updates.이사일) {
             if (!sessionStorage.getItem('db_migration_warning_shown')) {
@@ -441,28 +420,26 @@ export default function App() {
           }
           return;
         }
-        
+
         console.error('민원 수정 오류:', error);
         // 로컬 상태는 업데이트 (컬럼이 없어도 UI에는 표시)
-        setComplaints(prevComplaints => 
-          prevComplaints.map(c => 
+        setComplaints(prevComplaints =>
+          prevComplaints.map(c =>
             c.id === id ? { ...c, ...updates } : c
           )
         );
         return;
       }
-
-      console.log('✅ 데이터베이스 업데이트 성공');
-      setComplaints(prevComplaints => 
-        prevComplaints.map(c => 
+      setComplaints(prevComplaints =>
+        prevComplaints.map(c =>
           c.id === id ? { ...c, ...updates } : c
         )
       );
     } catch (err) {
       console.error('민원 수정 중 예외 발생:', err);
       // 예외 발생 시에도 로컬 상태는 업데이트
-      setComplaints(prevComplaints => 
-        prevComplaints.map(c => 
+      setComplaints(prevComplaints =>
+        prevComplaints.map(c =>
           c.id === id ? { ...c, ...updates } : c
         )
       );
@@ -471,60 +448,58 @@ export default function App() {
 
   // 객실정보 업데이트 함수 추가
   const updateRoom = async (차수: string, 호수: string, updates: Partial<RoomInfo>) => {
-    console.log('🔄 updateRoom 호출:', { 차수, 호수, updates });
-    
+
     try {
+      // DB에 upsert로 신규 객실도 생성되게 처리
       const { error } = await supabase
         .from('rooms')
-        .update(updates)
-        .eq('차수', 차수)
-        .eq('호수', 호수);
+        .upsert({
+          차수: parseInt(차수) || 차수,
+          호수: parseInt(호수) || 호수,
+          ...updates
+        }, { onConflict: '차수,호수' });
 
       if (error) {
         console.warn('⚠️ 객실정보 업데이트 오류:', error);
-        // 로컬 상태는 업데이트
-        setRooms(prevRooms => 
-          prevRooms.map(r => 
-            (r.차수 === 차수 && r.호수 === 호수) ? { ...r, ...updates } : r
-          )
-        );
-        return;
+      } else {
       }
 
-      console.log('✅ 객실정보 업데트 성공');
-      setRooms(prevRooms => 
-        prevRooms.map(r => 
-          (r.차수 === 차수 && r.호수 === 호수) ? { ...r, ...updates } : r
-        )
-      );
+      // 로컬 상태 업데이트 (신규 추가 포함)
+      setRooms(prevRooms => {
+        const exists = prevRooms.some(r => r.차수 == 차수 && (r.호수 == 호수 || (r as any).호실 == 호수));
+        if (exists) {
+          return prevRooms.map(r =>
+            (r.차수 == 차수 && (r.호수 == 호수 || (r as any).호실 == 호수)) ? { ...r, ...updates } : r
+          );
+        } else {
+          return [...prevRooms, { 차수, 호수, 호실: 호수, ...updates } as RoomInfo];
+        }
+      });
     } catch (err) {
       console.error('객실정보 수정 중 예외 발생:', err);
-      // 예외 발생 시에도 로컬 상태는 데이트
-      setRooms(prevRooms => 
-        prevRooms.map(r => 
-          (r.차수 === 차수 && r.호수 === 호수) ? { ...r, ...updates } : r
-        )
-      );
+      // 예외 발생 시에도 로컬 상태는 업데이트
+      setRooms(prevRooms => {
+        const exists = prevRooms.some(r => r.차수 == 차수 && (r.호수 == 호수 || (r as any).호실 == 호수));
+        if (exists) {
+          return prevRooms.map(r =>
+            (r.차수 == 차수 && (r.호수 == 호수 || (r as any).호실 == 호수)) ? { ...r, ...updates } : r
+          );
+        } else {
+          return [...prevRooms, { 차수, 호수, 호실: 호수, ...updates } as RoomInfo];
+        }
+      });
     }
   };
 
   // 숙박형태 업데이트 함수
   const updateRoomAccommodationType = async (차수: string, 호실: string, 숙박형태: string) => {
-    console.log('🏷️ updateRoomAccommodationType 호출:', { 차수, 호실, 숙박형태 });
-    
+
     // 숫자만 추출
     const 차수숫자 = String(차수).replace(/[^0-9]/g, '');
     const 호실숫자 = String(호실).replace(/[^0-9]/g, '');
-    
-    console.log('🔍 roomDatabase 현재 상태:', roomDatabase.length, '개');
     if (roomDatabase.length > 0) {
-      console.log('🔍 roomDatabase 첫 3개:', roomDatabase.slice(0, 3).map(r => ({
-        차수: r.차수, 차수type: typeof r.차수,
-        호실: r.호실, 호실type: typeof r.호실,
-        숙박형태: r.숙박형태
-      })));
     }
-    
+
     // 1. roomDatabase 즉시 업데이트 (getRoomInfo가 참조하는 데이터)
     const roomIdx = roomDatabase.findIndex(r => {
       const r차수 = String(r.차수 ?? '').replace(/[^0-9]/g, '');
@@ -533,7 +508,6 @@ export default function App() {
     });
     if (roomIdx !== -1) {
       roomDatabase[roomIdx] = { ...roomDatabase[roomIdx], 숙박형태 };
-      console.log('✅ roomDatabase 업데이트 완료:', roomDatabase[roomIdx]);
     } else {
       console.warn('⚠️ roomDatabase에서 못 찾음 (DB 직접 업데이트 시도):', { 차수숫자, 호실숫자, dbLength: roomDatabase.length });
       // roomDatabase에 없으면 새로 추가 (UI 즉시 반영용)
@@ -556,13 +530,11 @@ export default function App() {
         .eq('차수', parseInt(차수숫자))
         .eq('호수', parseInt(호실숫자))
         .select();
-      
+
       if (!e1 && d1 && d1.length > 0) {
-        console.log('✅ DB 업데이트 성공 (숫자 매칭):', d1.length, '개');
         dbUpdated = true;
       } else {
-        console.log('🔄 숫자 매칭 결과:', { error: e1?.message, rows: d1?.length });
-        
+
         // 시도 2: 문자열로 매칭
         const { data: d2, error: e2 } = await supabase
           .from('rooms')
@@ -570,13 +542,11 @@ export default function App() {
           .eq('차수', 차수숫자)
           .eq('호수', 호실숫자)
           .select();
-        
+
         if (!e2 && d2 && d2.length > 0) {
-          console.log('✅ DB 업데이트 성공 (문자열 매칭):', d2.length, '개');
           dbUpdated = true;
         } else {
-          console.log('🔄 문자열 매칭 결과:', { error: e2?.message, rows: d2?.length });
-          
+
           // 시도 3: 원래 값 그대로 매칭
           const { data: d3, error: e3 } = await supabase
             .from('rooms')
@@ -584,13 +554,11 @@ export default function App() {
             .eq('차수', 차수)
             .eq('호수', 호실)
             .select();
-          
+
           if (!e3 && d3 && d3.length > 0) {
-            console.log('✅ DB 업데이트 성공 (원본값 매칭):', d3.length, '개');
             dbUpdated = true;
           } else {
             // 시도 4: 해당 호실이 rooms 테이블에 없으므로 새로 삽입 (upsert)
-            console.log('🔄 rooms 테이블에 해당 호실 없음 → 새로 삽입 시도');
             const { data: d4, error: e4 } = await supabase
               .from('rooms')
               .upsert({
@@ -599,13 +567,11 @@ export default function App() {
                 숙박형태,
               }, { onConflict: '차수,호수' })
               .select();
-            
+
             if (!e4) {
-              console.log('✅ DB 삽입(upsert) 성공:', d4?.length, '개');
               dbUpdated = true;
             } else {
               // upsert 실패 시 단순 insert 시도
-              console.log('🔄 upsert 실패, 단순 insert 시도:', e4.message);
               const { data: d5, error: e5 } = await supabase
                 .from('rooms')
                 .insert({
@@ -614,17 +580,11 @@ export default function App() {
                   숙박형태,
                 })
                 .select();
-              
+
               if (!e5 && d5 && d5.length > 0) {
-                console.log('✅ DB insert 성공:', d5.length, '개');
                 dbUpdated = true;
               } else {
                 console.warn('⚠️ 모든 DB 매칭/삽입 실패. rooms 테이블 구조를 확인하세요.', e5?.message);
-                console.log('💡 시도한 값:', { 
-                  숫자: { 차수: parseInt(차수숫자), 호수: parseInt(호실숫자) },
-                  문자열: { 차수: 차수숫자, 호수: 호실숫자 },
-                  원본: { 차수, 호수: 호실 }
-                });
               }
             }
           }
@@ -633,14 +593,14 @@ export default function App() {
     } catch (err) {
       console.error('❌ DB 업데이트 오류:', err);
     }
-    
+
     // 3. DB 업데이트 후 roomDatabase 재동기화
     if (dbUpdated) {
       await loadRooms();
     }
-    
+
     // 4. rooms 상태도 업데이트하여 리렌더링 트리거
-    setRooms(prevRooms => 
+    setRooms(prevRooms =>
       prevRooms.map(r => {
         const r차수 = String(r.차수 ?? '').replace(/[^0-9]/g, '');
         const r호수 = String((r as any).호수 ?? r.호실 ?? '').replace(/[^0-9]/g, '');
@@ -657,72 +617,61 @@ export default function App() {
       return c차수 === 차수숫자 && c호실 === 호실숫자;
     });
     if (latestComplaint) {
-      console.log('🏷️ 최신 민원 숙박형태 업데이트:', latestComplaint.id);
       await updateComplaint(latestComplaint.id, { 숙박형태 });
     }
   };
 
   // 객실이동 데이터 업데이트 함수 (차수+호실 기준)
   const updateRoomMoveData = async (차수: string, 호실: string, updates: Partial<Complaint>) => {
-    console.log('🏠 updateRoomMoveData 호출:', { 차수, 호실, updates });
-    console.log('🔍 현재 complaints 목록:');
     complaints.forEach(c => {
       if (c.운영종료일) {
-        console.log(`   - ID: ${c.id}, 차수: "${c.차수}", 호실: "${c.호실}", 운영종료일: ${c.운영종료일}`);
       }
     });
-    
+
     // 날짜 유효성 검증 함수
     const isValidDate = (dateString: string | undefined): boolean => {
       if (!dateString) return false;
       const date = new Date(dateString);
       return !isNaN(date.getTime());
     };
-    
+
     // 1. 차수와 호실을 숫자로 정규화
     const 차수숫자 = 차수.replace(/[^0-9]/g, '');
     const 호실숫자 = 호실.replace(/[^0-9]/g, '');
-    
-    console.log('🔍 정규화 결과:', { 원본차수: 차수, 차수숫자, 원본호실: 호실, 호실숫자 });
-    
+
     // 2. 해당 차수+호실의 운영종료일이 있는 민원 찾기
     const existingComplaint = complaints.find(c => {
       const c차수 = c.차수.replace(/[^0-9]/g, '');
       const c호실 = c.호실.replace(/[^0-9]/g, '');
       const match = c차수 === 차수숫자 && c호실 === 호실숫자 && c.운영종료일;
-      
+
       if (c.운영종료일) {
-        console.log(`   비교: c.수="${c.차수}"(${c차수}) vs "${차수}"(${차수숫자}), c.호실="${c.호실}"(${c호실}) vs "${호실}"(${호실숫자}) => ${match ? '✅ 매치!' : '❌'}`);
       }
-      
+
       return match;
     });
-    
+
     if (existingComplaint) {
       // 3-1. 기존 민원이 있으면 업데이트
-      console.log('✅ 기존 민원 발견, 업데이트:', existingComplaint.id);
       await updateComplaint(existingComplaint.id, updates);
     } else {
       // 3-2. 기존 민원이 없으면 새로 생성
-      console.log('📝 민원 없음, 신규 생성');
-      
+
       // 해당 차수+호실의 객실정보 기
       const matchedRoom = rooms.find(r => {
         const r차수 = String(r.차수).replace(/[^0-9]/g, '');
         const r호수 = String(r.호수).replace(/[^0-9]/g, '');
         return r차수 === 차수숫자 && r호수 === 호실숫자;
       });
-      
+
       // 날짜 필드 검증
       const 운영종료일 = isValidDate(matchedRoom?.운영종료일) ? matchedRoom?.운영종료일 : undefined;
       const 입주일 = isValidDate(matchedRoom?.입차일) ? matchedRoom?.입차일 : undefined;
       const 이사일 = isValidDate(updates.이사일) ? updates.이사일 : undefined;
-      
-      console.log('📅 날짜 검증 결과:', { 운영종료일, 입주일, 이사일 });
-      
+
       // 유니크한 ID 생성 (타임스탬프 + 랜덤값)
       const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
+
       const newComplaint: Complaint = {
         id: uniqueId,
         차수: 차수,
@@ -739,7 +688,7 @@ export default function App() {
         ...updates, // 업데이트 내용 적용
         이사일: 이사일, // 검증된 이사일로 덮어쓰기
       };
-      
+
       try {
         const { error } = await supabase
           .from('complaints')
@@ -747,7 +696,6 @@ export default function App() {
 
         if (error) {
           if (error.code === 'PGRST205') {
-            console.log('테이블이 아직 생성되지 않았습니다. 로컬 상태로만 작동합니다.');
             setComplaints([newComplaint, ...complaints]);
             return;
           }
@@ -755,8 +703,6 @@ export default function App() {
           setComplaints([newComplaint, ...complaints]);
           return;
         }
-
-        console.log('✅ 신규 민원 생성 성공');
         setComplaints([newComplaint, ...complaints]);
       } catch (err) {
         console.error('민원 추가 중 예외 발생:', err);
@@ -774,17 +720,17 @@ export default function App() {
 
   const filteredComplaints = complaints.filter(complaint => {
     // 처리상태, 선택사, 날짜필터는 독립적으로 작동 (AND 조건)
-    
+
     // 처리상태 필터
     if (selectedStatus !== null && complaint.상태 !== selectedStatus) {
       return false;
     }
-    
+
     // 선택사항 필터
     if (selectedCategory !== null && complaint.구분 !== selectedCategory) {
       return false;
     }
-    
+
     // 날짜 필터
     if (selectedDateFilter !== null) {
       const isToday = (dateString: string) => {
@@ -826,7 +772,7 @@ export default function App() {
           break;
       }
     }
-    
+
     return true;
   });
 
@@ -836,17 +782,15 @@ export default function App() {
     const room호실 = (c.호실 ?? '').toString().replace(/[^0-9]/g, '');
     const selected호실 = (selectedRoom.호실 ?? '').toString().replace(/[^0-9]/g, '');
     return (!selectedRoom.차수 || room차수 === selected차수) &&
-           (!selectedRoom.호실 || room호실 === selected호실);
+      (!selectedRoom.호실 || room호실 === selected호실);
   });
 
   const stats = {
     전체: complaints.length,
     접수: complaints.filter(c => c.상태 === '접수').length,
-    영선팀: complaints.filter(c => c.상태 === '영선팀').length,
-    진행중: complaints.filter(c => c.상태 === '진행중').length,
-    부서이관: complaints.filter(c => c.상태 === '부서이관').length,
+    처리중: complaints.filter(c => c.상태 === '처리중' || c.상태 === '진행중').length,
+    영선이관: complaints.filter(c => c.상태 === '영선이관' || c.상태 === '영선팀' || c.상태 === '부서이관').length,
     외부업체: complaints.filter(c => c.상태 === '외부업체').length,
-    청소요청: complaints.filter(c => c.상태 === '청소요청').length,
     완료: complaints.filter(c => c.상태 === '완료').length
   };
 
@@ -876,16 +820,16 @@ export default function App() {
   // 전체화면 이미지 모달
   if (fullscreenImage) {
     return (
-      <div 
+      <div
         className="fixed inset-0 bg-black z-50 flex items-center justify-center cursor-pointer"
         onClick={() => setFullscreenImage(null)}
       >
         <div className="absolute top-4 left-4 bg-white/10 text-white px-4 py-2 rounded-lg text-sm backdrop-blur-sm pointer-events-none">
           이미지를 클릭하면 돌아갑니다
         </div>
-        <img 
-          src={fullscreenImage} 
-          alt="전체화면" 
+        <img
+          src={fullscreenImage}
+          alt="전체화면"
           className="max-w-[90vw] max-h-[90vh] object-contain"
         />
       </div>
@@ -905,22 +849,22 @@ export default function App() {
                 <p className="text-blue-200 text-sm md:text-base">블루오션 레지던스 호텔 민원관리 시스템</p>
               </div>
             </div>
-            
+
             {/* 우측 영역 */}
             <div className="flex items-center gap-3">
               {/* 사용자 및 로그아웃 */}
               <div className="flex items-center gap-2">
                 <span className="text-blue-100 text-xs whitespace-nowrap">
                   {currentUserId === '01' ? '수용' :
-                   currentUserId === '02' ? '동훈' :
-                   currentUserId === '03' ? '시우' :
-                   currentUserId === '04' ? '현석' :
-                   currentUserId === '05' ? '아름' :
-                   currentUserId === '06' ? '남식' :
-                   currentUserId === '07' ? '영선' :
-                   currentUserId === '08' ? '관리사무소' :
-                   currentUserId === '09' ? '키핑' :
-                   currentUserId === '10' ? '키핑팀' : ''}님
+                    currentUserId === '02' ? '동훈' :
+                      currentUserId === '03' ? '아름' :
+                        currentUserId === '04' ? '태형' :
+                          currentUserId === '05' ? '아름(매니저)' :
+                            currentUserId === '06' ? '남식' :
+                              currentUserId === '07' ? '영선' :
+                                currentUserId === '08' ? '관리사무소' :
+                                  currentUserId === '09' ? '키핑' :
+                                    currentUserId === '10' ? '키핑팀' : ''}님
                 </span>
                 <button
                   onClick={handleLogout}
@@ -929,34 +873,32 @@ export default function App() {
                   로그아웃
                 </button>
               </div>
-              
-              {/* 관리자 + M01, M02, M03 버튼 (01번: 관리자·동훈·시우·현석 동일 스타일) */}
+
+              {/* 관리자 + M01, M02, M03 버튼 (01번: 관리자·태형·아름·동훈 동일 스타일) */}
               {(currentUserId === '01' || (currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07')) && (
                 <div className="flex gap-1 border-l border-blue-400/30 pl-3">
                   {currentUserId === '01' && (
                     <button
                       onClick={() => setCurrentPage('관리자')}
-                      className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
-                        currentPage === '관리자'
-                          ? 'bg-white text-blue-600'
-                          : 'bg-white/10 text-white hover:bg-white/20'
-                      }`}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${currentPage === '관리자'
+                        ? 'bg-white text-blue-600'
+                        : 'bg-white/10 text-white hover:bg-white/20'
+                        }`}
                     >
                       관리자
                     </button>
                   )}
                   {currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07' && (
-                    (['M01', 'M02', 'M03'] as const).map((page) => {
-                      const label = page === 'M01' ? '동훈' : page === 'M02' ? '시우' : '현석';
+                    (['M03', 'M02', 'M01'] as const).map((page) => {
+                      const label = page === 'M03' ? '태형' : page === 'M02' ? '아름' : '동훈';
                       return (
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${
-                            currentPage === page
-                              ? 'bg-white text-blue-600'
-                              : 'bg-white/10 text-white hover:bg-white/20'
-                          }`}
+                          className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${currentPage === page
+                            ? 'bg-white text-blue-600'
+                            : 'bg-white/10 text-white hover:bg-white/20'
+                            }`}
                         >
                           {label}
                         </button>
@@ -972,24 +914,23 @@ export default function App() {
         {/* Navigation Tabs */}
         <div className="w-full px-4 sm:px-6 lg:px-8 py-2 border-t border-blue-500/30">
           <div className="flex gap-2 overflow-x-auto">
-            {(currentUserId === '10' 
+            {(currentUserId === '10'
               ? ['객실정비']
               : currentUserId === '08'
-              ? ['객실이동']
-              : currentUserId === '07'
-              ? ['영선']
-              : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력']
+                ? ['객실이동']
+                : currentUserId === '07'
+                  ? ['영선']
+                  : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력']
             ).map((page) => {
               const Icon = PAGE_ICONS[page];
               return (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page as typeof currentPage)}
-                  className={`px-5 py-2.5 text-base font-medium whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 ${
-                    currentPage === page
-                      ? 'text-white bg-blue-600 shadow-sm'
-                      : 'text-blue-100 hover:text-white hover:bg-blue-600/40'
-                  }`}
+                  className={`px-5 py-2.5 text-base font-medium whitespace-nowrap transition-all rounded-lg flex items-center gap-1.5 ${currentPage === page
+                    ? 'text-white bg-blue-600 shadow-sm'
+                    : 'text-blue-100 hover:text-white hover:bg-blue-600/40'
+                    }`}
                 >
                   {Icon && <Icon className="w-4 h-4 shrink-0" />}
                   {page}
@@ -1021,132 +962,134 @@ export default function App() {
             </div>
           }
         >
-        {currentPage === '입력' && (
-          <InputPage
-            onSubmit={addComplaint}
-            selectedRoom={selectedRoom}
-            onRoomChange={handleHistoryRoomChange}
-            formRoom={formRoom}
-            onFormRoomChange={handleFormRoomChange}
-            roomHistoryComplaints={roomHistoryComplaints}
-            onUpdate={updateComplaint}
-            onImageClick={setFullscreenImage}
-            onRoomAccommodationTypeUpdate={updateRoomAccommodationType}
-            formRoomAccommodationType={rooms.find(r => r.차수 === formRoom.차수 && r.호수 === formRoom.호실)?.숙박형태}
-            onNavigateToHistory={() => setCurrentPage('객실히스토리')}
-          />
-        )}
+          {currentPage === '입력' && (
+            <InputPage
+              onSubmit={addComplaint}
+              selectedRoom={selectedRoom}
+              onRoomChange={handleHistoryRoomChange}
+              formRoom={formRoom}
+              onFormRoomChange={handleFormRoomChange}
+              roomHistoryComplaints={roomHistoryComplaints}
+              onUpdate={updateComplaint}
+              onImageClick={setFullscreenImage}
+              onRoomAccommodationTypeUpdate={updateRoomAccommodationType}
+              formRoomAccommodationType={rooms.find(r => r.차수 === formRoom.차수 && r.호수 === formRoom.호실)?.숙박형태}
+              onRoomUpdate={updateRoom}
+              onNavigateToHistory={() => setCurrentPage('객실히스토리')}
+            />
+          )}
 
-        {currentPage === '전체조회' && (
-          <AllComplaintsPage
-            stats={stats}
-            categories={categories}
-            selectedStatus={selectedStatus}
-            selectedCategory={selectedCategory}
-            selectedDateFilter={selectedDateFilter}
-            onStatusSelect={setSelectedStatus}
-            onCategorySelect={setSelectedCategory}
-            onDateFilterSelect={setSelectedDateFilter}
-            complaints={complaints}
-            filteredComplaints={filteredComplaints}
-            onUpdate={updateComplaint}
-            onImageClick={setFullscreenImage}
-          />
-        )}
+          {currentPage === '전체조회' && (
+            <AllComplaintsPage
+              stats={stats}
+              categories={categories}
+              selectedStatus={selectedStatus}
+              selectedCategory={selectedCategory}
+              selectedDateFilter={selectedDateFilter}
+              onStatusSelect={setSelectedStatus}
+              onCategorySelect={setSelectedCategory}
+              onDateFilterSelect={setSelectedDateFilter}
+              complaints={complaints}
+              filteredComplaints={filteredComplaints}
+              onUpdate={updateComplaint}
+              onImageClick={setFullscreenImage}
+            />
+          )}
 
-        {currentPage === '영선' && (
-          <MaintenancePage
-            complaints={complaints}
-            onUpdate={updateComplaint}
-            onImageClick={setFullscreenImage}
-          />
-        )}
+          {currentPage === '영선' && (
+            <MaintenancePage
+              complaints={complaints}
+              onUpdate={updateComplaint}
+              onImageClick={setFullscreenImage}
+            />
+          )}
 
-        {currentPage === '객실이동' && (
-          <RoomMovePage
-            complaints={complaints}
-            rooms={rooms}
-            onUpdate={updateComplaint}
-            onRoomUpdate={updateRoom}
-            onRoomMoveDataUpdate={updateRoomMoveData}
-            onImageClick={setFullscreenImage}
-          />
-        )}
+          {currentPage === '객실이동' && (
+            <RoomMovePage
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+              onRoomUpdate={updateRoom}
+              onRoomMoveDataUpdate={updateRoomMoveData}
+              onImageClick={setFullscreenImage}
+            />
+          )}
 
-        {currentPage === '객실체크' && (
-          <RoomCheckPage
-            complaints={complaints}
-            onUpdate={updateComplaint}
-            onSelectRoom={(complaint) => {
-              // TODO: 세부 체크리스트 페이지로 이동
-            }}
-            currentUserId={currentUserId}
-          />
-        )}
+          {currentPage === '객실체크' && (
+            <RoomCheckPage
+              complaints={complaints}
+              onUpdate={updateComplaint}
+              onSelectRoom={(complaint) => {
+                // TODO: 세부 체크리스트 페이지로 이동
+              }}
+              currentUserId={currentUserId}
+            />
+          )}
 
-        {currentPage === '객실정비' && (
-          <CleaningPage
-            complaints={complaints}
-            onUpdate={updateComplaint}
-            onImageClick={setFullscreenImage}
-            currentUserId={currentUserId}
-            rooms={rooms}
-          />
-        )}
+          {currentPage === '객실정비' && (
+            <CleaningPage
+              complaints={complaints}
+              onUpdate={updateComplaint}
+              onImageClick={setFullscreenImage}
+              currentUserId={currentUserId}
+              rooms={rooms}
+            />
+          )}
 
-        {currentPage === '안내/입력' && (
-          <InfoPage onRoomsUpdate={loadRooms} currentUserId={currentUserId} />
-        )}
-        
-        {currentPage === 'M01' && (
-          <M01Page 
-            complaints={complaints}
-            rooms={rooms}
-            onUpdate={updateComplaint}
-          />
-        )}
-        
-        {currentPage === 'M02' && (
-          <M02Page 
-            complaints={complaints}
-            rooms={rooms}
-            onUpdate={updateComplaint}
-          />
-        )}
-        
-        {currentPage === 'M03' && (
-          <M03Page 
-            complaints={complaints}
-            rooms={rooms}
-            onUpdate={updateComplaint}
-          />
-        )}
-        
-        {currentPage === '숙박형태' && (
-          <AccommodationTypePage 
-            rooms={rooms}
-            onNavigateToInput={() => setCurrentPage('입력')}
-          />
-        )}
+          {currentPage === '안내/입력' && (
+            <InfoPage onRoomsUpdate={loadRooms} currentUserId={currentUserId} />
+          )}
 
-        {currentPage === '객실히스토리' && (
-          <RoomHistoryPage
-            complaints={complaints}
-            rooms={rooms}
-            onUpdate={updateComplaint}
-            onImageClick={setFullscreenImage}
-            selectedRoom={selectedRoom}
-            onRoomChange={(room) => {
-              setSelectedRoom(room);
-              setFormRoom(room);
-            }}
-            onNavigateToInput={() => setCurrentPage('입력')}
-          />
-        )}
+          {currentPage === 'M01' && (
+            <M01Page
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+            />
+          )}
 
-        {currentPage === '관리자' && currentUserId === '01' && (
-          <AdminDashboard complaints={complaints} />
-        )}
+          {currentPage === 'M02' && (
+            <M02Page
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+            />
+          )}
+
+          {currentPage === 'M03' && (
+            <M03Page
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+            />
+          )}
+
+          {currentPage === '숙박형태' && (
+            <AccommodationTypePage
+              rooms={rooms}
+              onNavigateToInput={() => setCurrentPage('입력')}
+            />
+          )}
+
+          {currentPage === '객실히스토리' && (
+            <RoomHistoryPage
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+              onImageClick={setFullscreenImage}
+              selectedRoom={selectedRoom}
+              onRoomUpdate={updateRoom}
+              onRoomChange={(room) => {
+                setSelectedRoom(room);
+                setFormRoom(room);
+              }}
+              onNavigateToInput={() => setCurrentPage('입력')}
+            />
+          )}
+
+          {currentPage === '관리자' && currentUserId === '01' && (
+            <AdminDashboard complaints={complaints} />
+          )}
         </ErrorBoundary>
       </div>
     </div>

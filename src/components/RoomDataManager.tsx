@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Upload, ClipboardPaste, Download, AlertCircle, CheckCircle, Database } from 'lucide-react';
+import { Upload, Download, AlertCircle, CheckCircle, Database } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { supabase } from '../utils/supabase/client';
 import { projectId, publicAnonKey } from '../utils/supabase/info';
@@ -20,13 +20,41 @@ interface RoomDataManagerProps {
 }
 
 export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
-  const [pasteData, setPasteData] = useState('');
   const [previewData, setPreviewData] = useState<RoomData[]>([]);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [isMigrating, setIsMigrating] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 엑셀 날짜 시리얼 번호(46446 등)를 YYYY-MM-DD 형식으로 변환
+  const formatExcelDate = (value: any) => {
+    if (!value) return '';
+
+    // 이미 YYYY-MM-DD 형식이거나 문자열인 경우
+    if (typeof value === 'string' && value.includes('-') && value.length >= 8) {
+      return value.trim();
+    }
+
+    // 숫자인 경우 (엑셀 시리얼 번호)
+    if (typeof value === 'number' || (!isNaN(Number(value)) && String(value).length >= 5)) {
+      const num = Number(value);
+      try {
+        // 엑셀 날짜 기준일(1899-12-30) 보정 로직
+        // 25569는 1970년 1월 1일의 엑셀 시리얼 번호입니다.
+        const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+
+        // 유효한 날짜인지 확인
+        if (!isNaN(date.getTime())) {
+          return date.toISOString().split('T')[0];
+        }
+      } catch (e) {
+        console.warn('날짜 변환 실패:', value);
+      }
+    }
+
+    return String(value).trim();
+  };
 
   // 엑셀 파일 업로드 처리
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,7 +75,7 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
           호수: String(row['호수'] || row['호실'] || '').trim(),
           타입: String(row['타입'] || row['구분'] || '').trim(),
           조망: String(row['조망'] || '').trim(),
-          운영종료일: String(row['운영종료일'] || '').trim(),
+          운영종료일: formatExcelDate(row['운영종료일'] || row['종료일'] || ''),
           숙박형태: String(row['숙박형태'] || '').trim(),
           임차인: String(row['임차인'] || '').trim(),
           임차인연락처: String(row['임차인연락처'] || row['연락처'] || '').trim(),
@@ -65,50 +93,6 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
     reader.readAsBinaryString(file);
   };
 
-  // 클립보드 데이터 파싱
-  const handlePaste = () => {
-    try {
-      const lines = pasteData.trim().split('\n');
-      const rooms: RoomData[] = [];
-
-      lines.forEach((line) => {
-        // 탭으로 구분된 데이터 우선 처리
-        let cells = line.split('\t');
-        
-        // 탭이 없으면 공백으로 분리 시도 (엑셀 복사가 아닌 경우)
-        if (cells.length < 8) {
-          cells = line.split(/\s+/);
-        }
-        
-        if (cells.length >= 8) {
-          rooms.push({
-            차수: cells[0]?.trim() || '',
-            호수: cells[1]?.trim() || '',
-            타입: cells[2]?.trim() || '',
-            조망: cells[3]?.trim() || '',
-            운영종료일: cells[4]?.trim() || '',
-            숙박형태: cells[5]?.trim() || '',
-            임차인: cells[6]?.trim() || '',
-            임차인연락처: cells[7]?.trim() || '',
-          });
-        }
-      });
-
-      if (rooms.length > 0) {
-        setPreviewData(rooms);
-        setMessage(`${rooms.length}개의 객실 데이터를 불러왔습니다.`);
-        setUploadStatus('idle');
-      } else {
-        setMessage('올바른 형식의 데이터가 아닙니다. 8개의 열(차수, 호수, 타입, 조망, 운영종료일, 숙박형태, 입차인, 연락처)이 필요합니다.');
-        setUploadStatus('error');
-      }
-    } catch (error) {
-      console.error('붙여넣기 파싱 오류:', error);
-      setMessage('데이터를 처리하는 중 오류가 발생했습니다.');
-      setUploadStatus('error');
-    }
-  };
-
   // 데이터베이스에 저장
   const handleSaveToDatabase = async () => {
     if (previewData.length === 0) {
@@ -121,8 +105,6 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
     setMessage('데이터를 저장하는 중...');
 
     try {
-      console.log('💾 저장 시작:', previewData.length, '개 데이터');
-      console.log('📊 첫 번째 데이터:', previewData[0]);
 
       // 1️⃣ 기존 객실정보를 가져와서 변경사항 확인
       const { data: existingRooms, error: fetchError } = await supabase
@@ -133,26 +115,21 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
         console.warn('⚠️ 기존 데이터 조회 오류:', fetchError);
       }
 
-      console.log('📋 기존 객실정보:', existingRooms?.length || 0, '개');
-
       // 2️⃣ 기존 데이터와 비교하여 변경 이력 저장
       const roomsToSave = previewData.map((room) => {
         const 차수정규화 = room.차수.replace('차', ''); // \"1차\" → \"1\" 변환
-        
+
         // 기존 객실정보 찾기
         const existingRoom = existingRooms?.find(
           (r: any) => r.차수 === 차수정규화 && r.호수 === room.호수
         );
 
         // 임차인 정보가 변경되었는지 확인
-        const 임차인변경됨 = existingRoom && 
-          (existingRoom.임차인 !== room.임차인 || 
-           existingRoom.임차인연락처 !== room.임차인연락처);
+        const 임차인변경됨 = existingRoom &&
+          (existingRoom.임차인 !== room.임차인 ||
+            existingRoom.임차인연락처 !== room.임차인연락처);
 
         if (임차인변경됨) {
-          console.log(`🔄 입주민 변경 감지: ${차수정규화}-${room.호수}`);
-          console.log(`   이전: ${existingRoom.임차인} (${existingRoom.임차인연락처})`);
-          console.log(`   신규: ${room.임차인} (${room.임차인연락처})`);
         }
 
         return {
@@ -186,19 +163,15 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
       // 4️⃣ 변경된 객실 수 계산
       const 변경된객실수 = roomsToSave.filter(r => r.이전임차인 && r.변경일시 === new Date().toISOString()).length;
 
-      console.log('✅ 저장 성공:', data);
-      console.log(`📊 입주민 변경: ${변경된객실수}개`);
-
       setUploadStatus('success');
       setMessage(
         `${previewData.length}개의 객실 데이터가 성공적으로 저장되었습니다! 🎉` +
         (변경된객실수 > 0 ? `\n📌 입주민 변경: ${변경된객실수}개 (이전 정보 보존됨)` : '')
       );
-      
+
       // 5초 후 초기화
       setTimeout(() => {
         setPreviewData([]);
-        setPasteData('');
         setUploadStatus('idle');
         setMessage('');
       }, 5000);
@@ -213,13 +186,13 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
       console.error('오류 메시지:', error.message);
       console.error('오류 세부정보:', error.details);
       console.error('오류 힌트:', error.hint);
-      
+
       // 테이블이 없는 경우 (PGRST205 또는 다른 관련 오류)
-      if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01' || 
-          error.message?.includes('relation') || 
-          error.message?.includes('does not exist') ||
-          error.message?.includes('Could not find') ||
-          error.message?.includes('schema cache')) {
+      if (error.code === 'PGRST204' || error.code === 'PGRST205' || error.code === '42P01' ||
+        error.message?.includes('relation') ||
+        error.message?.includes('does not exist') ||
+        error.message?.includes('Could not find') ||
+        error.message?.includes('schema cache')) {
         setMessage('❗ rooms 테이블의 컬럼이 올바르지 않거나 테이블이 없습니다. 아래 단계를 따라주세요:\n\n1. 프로젝트 파일에서 "/EXECUTE_THIS_SQL_NOW.sql" 파일 열기\n2. 전체 SQL 복사 (Ctrl+A → Ctrl+C)\n3. Supabase Dashboard → SQL Editor로 이동\n4. 붙여넣기 (Ctrl+V) 후 RUN 버튼 클릭\n5. 이 페이지로 돌아와서 다시 저장 시도');
       } else {
         setMessage(`저장 중 오류 발생: ${error.message || error.hint || JSON.stringify(error)}`);
@@ -251,7 +224,7 @@ export function RoomDataManager({ onRoomsUpdate }: RoomDataManagerProps) {
       if (result.success) {
         setUploadStatus('success');
         setMessage('✅ rooms 테이블이 성공적으로 생성되었습니다! 이제 객실 데이터를 업로드할 수 있습니다.');
-        
+
         setTimeout(() => {
           setUploadStatus('idle');
           setMessage('');
@@ -363,17 +336,17 @@ CREATE POLICY "Authenticated users can manage rooms" ON rooms FOR ALL USING (tru
           <strong>사용 방법:</strong>
         </p>
         <ol className="text-sm text-blue-700 space-y-1 ml-4 list-decimal">
-          <li>엑셀 파일을 업로드하거나, 엑셀에서 복사한 데이터를 붙여넣기 하세요.</li>
-          <li>데이터 형식: <span className="font-mono bg-white px-1 rounded">차수 | 호수 | 타입 | 조망 | 운영종료일 | 숙박형태 | 임차인 | 임차인연락처</span></li>
+          <li>엑셀 파일을 업로드하세요.</li>
+          <li>엑셀 첫 번째 행의 열 이름(헤더)을 기준으로 매핑됩니다: <span className="font-mono bg-white border border-blue-200 px-1 rounded">차수, 호수(호실), 타입, 조망, 운영종료일, 숙박형태, 임차인, 임차인연락처</span></li>
           <li>미리보기로 확인 후 "데이터베이스에 저장" 버튼을 클릭하세요.</li>
         </ol>
       </div>
 
-      {/* 업로드 버튼 영역 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+      {/* 기능 버튼 영역 */}
+      <div className="flex flex-wrap gap-3 mb-6">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Upload className="w-5 h-5" />
           엑셀 파일 업로드
@@ -385,48 +358,24 @@ CREATE POLICY "Authenticated users can manage rooms" ON rooms FOR ALL USING (tru
           onChange={handleFileUpload}
           className="hidden"
         />
-      </div>
-
-      {/* 붙여넣기 영역 */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          엑셀 데이터 복사/붙여넣기
-        </label>
-        <textarea
-          value={pasteData}
-          onChange={(e) => setPasteData(e.target.value)}
-          placeholder="엑셀에서 데이터를 복사(Ctrl+C)하여 여기에 붙여넣기(Ctrl+V) 하세요..."
-          className="w-full h-32 px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-        />
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={handlePaste}
-            disabled={!pasteData.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-400"
-          >
-            <ClipboardPaste className="w-4 h-4" />
-            데이터 불러오기
-          </button>
-          <button
-            onClick={handleCreateTable}
-            className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
-          >
-            <Database className="w-4 h-4" />
-            테이블 자동생성
-          </button>
-        </div>
+        <button
+          onClick={handleCreateTable}
+          className="flex items-center gap-2 px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm"
+        >
+          <Database className="w-4 h-4" />
+          테이블 자동생성
+        </button>
       </div>
 
       {/* 상태 메시지 */}
       {message && (
         <div
-          className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${
-            uploadStatus === 'success'
+          className={`flex items-center gap-2 p-4 rounded-lg mb-6 ${uploadStatus === 'success'
               ? 'bg-green-50 border-2 border-green-200 text-green-800'
               : uploadStatus === 'error'
-              ? 'bg-red-50 border-2 border-red-200 text-red-800'
-              : 'bg-yellow-50 border-2 border-yellow-200 text-yellow-800'
-          }`}
+                ? 'bg-red-50 border-2 border-red-200 text-red-800'
+                : 'bg-yellow-50 border-2 border-yellow-200 text-yellow-800'
+            }`}
         >
           {uploadStatus === 'success' ? (
             <CheckCircle className="w-5 h-5" />

@@ -1,7 +1,8 @@
-import { Phone, Key, Building2, Tv, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { Phone, Key, Building2, Tv, Upload, AlertCircle, CheckCircle, Database } from 'lucide-react';
 import { RoomDataManager } from './RoomDataManager';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '../utils/supabase/client';
+import * as XLSX from 'xlsx';
 
 interface InfoPageProps {
   onRoomsUpdate?: () => void;
@@ -9,42 +10,78 @@ interface InfoPageProps {
 }
 
 export function InfoPage({ onRoomsUpdate, currentUserId }: InfoPageProps) {
-  const [pasteText, setPasteText] = useState('');
+  const [parsedData, setParsedData] = useState<any[]>([]);
   const [importStatus, setImportStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [importMessage, setImportMessage] = useState('');
   const [isImporting, setIsImporting] = useState(false);
-  const [previewRows, setPreviewRows] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // 붙여넣기 텍스트 파싱 (탭/쉼표/엑셀 형식 모두 지원)
-  const parseImportText = (text: string) => {
-    const lines = text.trim().split('\n').filter(l => l.trim());
-    if (lines.length === 0) return [];
+  // 엑셀 날짜 포맷 변환 (숫자 시리얼 번호 등)
+  const formatExcelDate = (value: any) => {
+    if (!value) return '';
+    if (typeof value === 'string' && value.includes('-') && value.length >= 8) return value.trim();
 
-    return lines.map((line, idx) => {
-      // 탭 구분 또는 쉼표 구분
-      const cols = line.includes('\t') ? line.split('\t') : line.split(',');
-      const clean = cols.map(c => c.trim().replace(/^["']|["']$/g, ''));
-      return {
-        rowNum: idx + 1,
-        날짜: clean[0] || '',
-        차수: clean[1] || '',
-        호실: clean[2] || '',
-        구분: clean[3] || '',
-        내용: clean[4] || '',
-      };
-    });
+    if (typeof value === 'number' || (!isNaN(Number(value)) && String(value).length >= 5)) {
+      const num = Number(value);
+      try {
+        const date = new Date(Math.round((num - 25569) * 86400 * 1000));
+        if (!isNaN(date.getTime())) return date.toISOString().split('T')[0];
+      } catch (e) {
+        console.warn('날짜 변환 실패:', value);
+      }
+    }
+    return String(value).trim();
   };
 
-  const handleTextChange = (text: string) => {
-    setPasteText(text);
+  // 엑셀 파일 업로드 및 파싱
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     setImportStatus('idle');
-    const rows = parseImportText(text);
-    setPreviewRows(rows.slice(0, 5));
+    setImportMessage('');
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // 첫 번째 행을 헤더(key)로 하여 데이터 매핑
+        const jsonData = XLSX.utils.sheet_to_json<any>(worksheet);
+
+        const rows = jsonData.map((row: any, idx: number) => ({
+          rowNum: idx + 2,
+          날짜: formatExcelDate(row['날짜'] || row['일자'] || row['등록일'] || ''),
+          차수: String(row['차수'] || '').trim(),
+          호실: String(row['호실'] || row['호수'] || '').trim(),
+          구분: String(row['구분'] || '').trim(),
+          내용: String(row['내용'] || '').trim(),
+        })).filter((r: any) => r.차수 && r.호실 && r.내용);
+
+        if (rows.length === 0) {
+          setImportStatus('error');
+          setImportMessage('유효한 데이터가 없습니다. 첫 행에 날짜, 차수, 호실, 구분, 내용 등의 열 이름이 있는지 확인해주세요.');
+          setParsedData([]);
+        } else {
+          setParsedData(rows);
+          setImportMessage(`${rows.length}건의 데이터를 불러왔습니다. 확인 후 등록해주세요.`);
+        }
+      } catch (err: any) {
+        setImportStatus('error');
+        setImportMessage('파일을 읽는 중 오류가 발생했습니다.');
+      }
+    };
+    reader.readAsBinaryString(file);
+
+    // 파일 선택 초기화
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleImport = async () => {
-    const rows = parseImportText(pasteText);
-    if (rows.length === 0) {
+    if (parsedData.length === 0) {
       setImportStatus('error');
       setImportMessage('입력된 데이터가 없습니다.');
       return;
@@ -54,7 +91,7 @@ export function InfoPage({ onRoomsUpdate, currentUserId }: InfoPageProps) {
     setImportStatus('idle');
 
     try {
-      const records = rows.map(row => ({
+      const records = parsedData.map(row => ({
         id: `import-${Date.now()}-${row.rowNum}-${Math.random().toString(36).slice(2, 7)}`,
         차수: row.차수,
         호실: row.호실,
@@ -81,8 +118,7 @@ export function InfoPage({ onRoomsUpdate, currentUserId }: InfoPageProps) {
 
       setImportStatus('success');
       setImportMessage(`${successCount}건의 과거 데이터가 등록되었습니다.`);
-      setPasteText('');
-      setPreviewRows([]);
+      setParsedData([]);
     } catch (err: any) {
       setImportStatus('error');
       setImportMessage(`오류: ${err.message}`);
@@ -256,109 +292,111 @@ export function InfoPage({ onRoomsUpdate, currentUserId }: InfoPageProps) {
         </div>
       </div>
 
-      {/* 과거 하자/민원 데이터 일괄 입력 */}
+      {/* 관리자 도구 (과거 민원 등록 + 객실 정보 등록 좌우 배치) */}
       {currentUserId === '01' && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-blue-600" />
-            과거 하자/민원 데이터 일괄 입력
-          </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
-          <div className="space-y-4">
-            {/* 안내 */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-gray-700">
-                  <p className="font-bold text-blue-900 mb-2">엑셀에서 복사하여 붙여넣기</p>
-                  <p className="mb-1">엑셀에서 아래 순서로 열을 맞춰 복사 후 붙여넣기 하세요.</p>
-                  <div className="mt-2 flex gap-1 flex-wrap">
-                    {['날짜', '차수', '호실', '구분', '내용'].map((col, i) => (
-                      <span key={col} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
-                        <span className="text-blue-400">{i + 1}열</span> {col}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="mt-2 text-gray-500 text-xs">구분 예시: 민원(영선), 민원(기타), 입실, 퇴실, 청소 — 생략 시 "민원(기타)"로 자동 입력됩니다.</p>
-                </div>
-              </div>
-            </div>
+          {/* 왼쪽: 과거 민원 일괄 입력 */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-blue-600" />
+              과거 하자/민원 데이터 일괄 입력
+            </h2>
 
-            {/* 붙여넣기 영역 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">데이터 붙여넣기</label>
-              <textarea
-                value={pasteText}
-                onChange={(e) => handleTextChange(e.target.value)}
-                placeholder={"2024-01-15\t1\t101\t민원(영선)\t화장실 배수 불량\n2024-01-16\t2\t205\t민원(기타)\t소음 민원"}
-                rows={8}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono resize-y"
-              />
-              <p className="text-xs text-gray-400 mt-1">탭(Tab) 또는 쉼표(,)로 구분된 데이터를 붙여넣으세요.</p>
-            </div>
-
-            {/* 미리보기 */}
-            {previewRows.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">미리보기 (처음 5행)</p>
-                <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="w-full text-xs">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {['날짜', '차수', '호실', '구분', '내용'].map(h => (
-                          <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {previewRows.map((row, i) => (
-                        <tr key={i} className="border-t border-gray-100">
-                          <td className="px-3 py-1.5 text-gray-700">{row.날짜}</td>
-                          <td className="px-3 py-1.5 text-gray-700">{row.차수}</td>
-                          <td className="px-3 py-1.5 text-gray-700">{row.호실}</td>
-                          <td className="px-3 py-1.5 text-gray-700">{row.구분 || <span className="text-gray-400">민원(기타)</span>}</td>
-                          <td className="px-3 py-1.5 text-gray-700 max-w-[200px] truncate">{row.내용}</td>
-                        </tr>
+            <div className="space-y-4 flex-1">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-gray-700">
+                    <p className="font-bold text-blue-900 mb-2">엑셀 파일 업로드</p>
+                    <p className="mb-1">엑셀 첫 번째 행의 열 이름(헤더)을 기준으로 데이터가 자동 매핑됩니다.</p>
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {['날짜', '차수', '호실', '구분', '내용'].map((col) => (
+                        <span key={col} className="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-blue-200 text-blue-800 rounded text-xs font-medium">
+                          {col}
+                        </span>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                    <p className="mt-2 text-gray-500 text-xs">구분 예시: 민원(영선), 민원(기타), 입실, 퇴실, 청소 — 생략 시 "민원(기타)"로 자동 입력됨</p>
+                  </div>
                 </div>
-                {parseImportText(pasteText).length > 5 && (
-                  <p className="text-xs text-gray-500 mt-1">... 외 {parseImportText(pasteText).length - 5}건 더 있음 (총 {parseImportText(pasteText).length}건)</p>
-                )}
               </div>
-            )}
 
-            {/* 등록 버튼 */}
-            <button
-              onClick={handleImport}
-              disabled={isImporting || !pasteText.trim()}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Upload className="w-5 h-5" />
-              {isImporting ? '등록 중...' : `과거 데이터 등록${previewRows.length > 0 ? ` (총 ${parseImportText(pasteText).length}건)` : ''}`}
-            </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">엑셀 파일 선택</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Upload className="w-5 h-5" />
+                    엑셀 파일 업로드
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
 
-            {/* 결과 메시지 */}
-            {importStatus === 'success' && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 flex items-center gap-2 text-green-800">
-                <CheckCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium">{importMessage}</span>
-              </div>
-            )}
-            {importStatus === 'error' && (
-              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 flex items-center gap-2 text-red-800">
-                <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium">{importMessage}</span>
-              </div>
-            )}
+              {parsedData.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">미리보기 (처음 5행)</p>
+                  <div className="overflow-x-auto rounded-lg border border-gray-200">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {['날짜', '차수', '호실', '구분', '내용'].map(h => (
+                            <th key={h} className="px-3 py-2 text-left font-medium text-gray-600">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedData.slice(0, 5).map((row, i) => (
+                          <tr key={i} className="border-t border-gray-100">
+                            <td className="px-3 py-1.5 text-gray-700">{row.날짜}</td>
+                            <td className="px-3 py-1.5 text-gray-700">{row.차수}</td>
+                            <td className="px-3 py-1.5 text-gray-700">{row.호실}</td>
+                            <td className="px-3 py-1.5 text-gray-700">{row.구분 || <span className="text-gray-400">민원(기타)</span>}</td>
+                            <td className="px-3 py-1.5 text-gray-700 max-w-[150px] truncate">{row.내용}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {parsedData.length > 5 && (
+                    <p className="text-xs text-gray-500 mt-1">... 외 {parsedData.length - 5}건 더 있음 (총 {parsedData.length}건)</p>
+                  )}
+                </div>
+              )}
+
+              {importMessage && (
+                <div className={`p-4 rounded-lg flex items-center gap-2 ${importStatus === 'success' ? 'bg-green-50 border-2 border-green-200 text-green-800' :
+                    importStatus === 'error' ? 'bg-red-50 border-2 border-red-200 text-red-800' :
+                      'bg-blue-50 border-2 border-blue-200 text-blue-800'
+                  }`}>
+                  {importStatus === 'success' ? <CheckCircle className="w-5 h-5 flex-shrink-0" /> : <AlertCircle className="w-5 h-5 flex-shrink-0" />}
+                  <span className="font-medium text-sm">{importMessage}</span>
+                </div>
+              )}
+
+              <button
+                onClick={handleImport}
+                disabled={isImporting || parsedData.length === 0}
+                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white rounded-lg font-bold hover:bg-gray-900 transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+              >
+                <Database className="w-5 h-5" />
+                {isImporting ? '등록 중...' : `과거 데이터 등록${parsedData.length > 0 ? ` (총 ${parsedData.length}건)` : ''}`}
+              </button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* 객실정보 일괄 등록 */}
-      {currentUserId === '01' && (
-        <RoomDataManager onRoomsUpdate={onRoomsUpdate} />
+          {/* 오른쪽: 객실정보 일괄 등록 */}
+          <RoomDataManager onRoomsUpdate={onRoomsUpdate} />
+        </div>
       )}
     </div>
   );

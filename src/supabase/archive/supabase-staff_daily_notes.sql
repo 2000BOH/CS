@@ -1,4 +1,5 @@
 -- 동훈·시우·현석 일일 메모 테이블 (관리자 페이지에서 조회)
+-- 태형·아름·동훈 일일 메모 테이블 (관리자 페이지에서 조회)
 -- Supabase 대시보드 → SQL Editor에서 이 스크립트를 실행하세요.
 
 CREATE TABLE IF NOT EXISTS public.staff_daily_notes (
