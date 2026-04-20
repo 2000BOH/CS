@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Clock, CheckCircle, AlertCircle, ChevronDown, ChevronUp, Printer, Download, ChevronLeft, ChevronRight, Table } from 'lucide-react';
-import type { Complaint } from '../App';
+import type { Complaint } from '../types';
 import { getRoomInfo } from '../data/roomData';
 import { DateCell } from './DateCell';
 import { formatShortDate, formatTime, formatDateTime, dateToFullString } from '../utils/dateFormat';

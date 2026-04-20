@@ -2,7 +2,7 @@ import { useState, useMemo, Fragment } from 'react';
 import { Calendar, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, isToday, isThisWeek, isThisMonth, parseISO, isBefore, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import type { Complaint, RoomInfo } from '../App';
+import type { Complaint, RoomInfo } from '../types';
 import { StaffDailyNotePanel } from './StaffDailyNotePanel';
 
 interface M03PageProps {

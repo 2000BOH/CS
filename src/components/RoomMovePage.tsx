@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Complaint, RoomInfo } from '../App';
+import { Complaint, RoomInfo } from '../types';
 import { Star, Calendar as CalendarIcon, ChevronDown, ChevronUp, Printer, FileDown, Table, FileText, Upload, File, Download, X } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';

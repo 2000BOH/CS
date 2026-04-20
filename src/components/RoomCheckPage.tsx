@@ -1,5 +1,5 @@
 import { useState, Fragment } from 'react';
-import { Complaint } from '../App';
+import { Complaint } from '../types';
 import { ClipboardCheck, ChevronDown, ChevronUp, Star, Calendar as CalendarIcon, Camera } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';

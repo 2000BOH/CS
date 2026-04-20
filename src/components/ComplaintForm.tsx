@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Upload, X, Calendar as CalendarIcon, ChevronDown, ChevronUp } from 'lucide-react';
-import type { Complaint, RoomInfo } from '../App';
+import type { Complaint, RoomInfo } from '../types';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { dateToShortString } from '../utils/dateFormat';

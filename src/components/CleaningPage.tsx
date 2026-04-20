@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Complaint } from '../App';
+import { Complaint } from '../types';
 import { Calendar as CalendarIcon, CheckCircle, ChevronDown, ChevronUp, Star, Printer, Table } from 'lucide-react';
 import { Calendar } from './ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';

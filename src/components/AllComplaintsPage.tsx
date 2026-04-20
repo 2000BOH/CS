@@ -1,6 +1,6 @@
 import { StatsSidebar } from './StatsSidebar';
 import { ComplaintList } from './ComplaintList';
-import { Complaint } from '../App';
+import { Complaint } from '../types';
 
 interface AllComplaintsPageProps {
   stats: {

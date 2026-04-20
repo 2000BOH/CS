@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { format, isToday, isYesterday, isTomorrow, parseISO, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { Calendar, Users, ClipboardList, CheckCircle2, Clock, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
-import type { Complaint } from '../App';
+import type { Complaint } from '../types';
 import { supabase } from '../utils/supabase/client';
 
 interface AdminDashboardProps {

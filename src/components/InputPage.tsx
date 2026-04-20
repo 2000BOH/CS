@@ -1,8 +1,7 @@
 import { ComplaintForm } from './ComplaintForm';
 import { RoomHistory } from './RoomHistory';
-import { Complaint } from '../App';
+import { Complaint, RoomInfo } from '../types';
 import { useState } from 'react';
-import { RoomInfo } from '../App';
 
 interface InputPageProps {
   onSubmit: (complaint: Omit<Complaint, 'id' | '등록일시' | '등록자'>) => void;

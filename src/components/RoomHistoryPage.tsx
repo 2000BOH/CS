@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { Home, Clock, User, ChevronDown, ChevronUp, CheckCircle2, Edit2 } from 'lucide-react';
-import type { Complaint, RoomInfo } from '../App';
+import type { Complaint, RoomInfo } from '../types';
 import { getRoomInfo, roomDatabase } from '../data/roomData';
 import { formatShortDate, formatDateTime } from '../utils/dateFormat';
 

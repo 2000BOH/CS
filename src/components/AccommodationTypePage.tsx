@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { RoomInfo } from '../App';
+import { RoomInfo } from '../types';
 import { ArrowLeft } from 'lucide-react';
 
 interface AccommodationTypePageProps {
