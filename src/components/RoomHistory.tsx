@@ -1223,6 +1223,7 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
             {/* 모바일: 단일 컬럼 */}
             {viewMode === 'card' && (
               <div className="lg:hidden space-y-2 max-h-96 overflow-y-auto">{filteredComplaints.map((complaint, index) => {
+                const complaintRoomInfo = getRoomInfo(complaint.차수, complaint.호실);
                 // 표시할 숙박형태: 최신(1번) 민원만 현재 룸 정보, 나머지는 민원 저장 당시 값 표시
                 const displayAccomType = complaint.id === latestComplaintId
                   ? (complaintRoomInfo?.숙박형태 || complaint.숙박형태)
