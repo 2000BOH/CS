@@ -1,9 +1,11 @@
 import { Component, type ReactNode } from 'react';
 
+type FallbackRender = (error: Error, reset: () => void) => ReactNode;
+
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error) => void;
+  fallback?: ReactNode | FallbackRender;
+  onError?: (error: Error, info: { componentStack: string }) => void;
 }
 
 interface State {
@@ -18,12 +20,18 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error) {
-    this.props.onError?.(error);
+  componentDidCatch(error: Error, info: { componentStack: string }) {
+    console.error('[ErrorBoundary]', error, info.componentStack);
+    this.props.onError?.(error, info);
   }
+
+  reset = () => this.setState({ hasError: false, error: null });
 
   render() {
     if (this.state.hasError && this.state.error) {
+      if (typeof this.props.fallback === 'function') {
+        return this.props.fallback(this.state.error, this.reset);
+      }
       if (this.props.fallback) return this.props.fallback;
       return (
         <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-center">
@@ -31,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <p className="text-sm text-amber-700 mb-4">{this.state.error.message}</p>
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false, error: null })}
+            onClick={this.reset}
             className="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600"
           >
             다시 시도

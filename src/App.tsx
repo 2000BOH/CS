@@ -890,22 +890,37 @@ export default function App() {
       <div className="w-full px-3 sm:px-4 lg:px-6 py-4">
         <ErrorBoundary
           key={currentPage}
-          fallback={
+          fallback={(error, reset) => (
             <div className="p-6 bg-amber-50 border border-amber-200 rounded-lg text-center">
               <p className="text-amber-800 font-medium mb-2">페이지를 불러오는 중 문제가 발생했습니다.</p>
-              <p className="text-sm text-amber-700 mb-4">아래 버튼으로 다른 메뉴로 이동하거나, 위 탭을 눌러 주세요.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  const first = currentUserId === '10' ? '객실정비' : currentUserId === '08' ? '객실이동' : currentUserId === '07' ? '영선' : '전체조회';
-                  setCurrentPage(first as typeof currentPage);
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                다른 메뉴로 이동
-              </button>
+              <p className="text-sm text-amber-700 mb-2">아래 버튼으로 다른 메뉴로 이동하거나, 위 탭을 눌러 주세요.</p>
+              <details className="text-left text-xs text-amber-900 bg-amber-100 rounded p-2 mb-3 whitespace-pre-wrap break-words">
+                <summary className="cursor-pointer font-medium">오류 상세 보기</summary>
+                <div className="mt-2">{error.message}</div>
+                {error.stack && <pre className="mt-2 overflow-auto max-h-64">{error.stack}</pre>}
+              </details>
+              <div className="flex gap-2 justify-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    reset();
+                    const first = currentUserId === '10' ? '객실정비' : currentUserId === '08' ? '객실이동' : currentUserId === '07' ? '영선' : '전체조회';
+                    setCurrentPage(first as typeof currentPage);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  다른 메뉴로 이동
+                </button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600"
+                >
+                  다시 시도
+                </button>
+              </div>
             </div>
-          }
+          )}
         >
           {currentPage === '입력' && (
             <InputPage
