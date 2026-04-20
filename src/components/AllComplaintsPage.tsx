@@ -6,15 +6,11 @@ interface AllComplaintsPageProps {
   stats: {
     전체: number;
     접수: number;
-    처리중: number;
-    영선이관: number;
+    영선: number;
     외부업체: number;
+    청소: number;
+    퇴실: number;
     완료: number;
-    // 하위호환
-    영선팀?: number;
-    진행중?: number;
-    부서이관?: number;
-    청소요청?: number;
   };
   categories: {
     '영선': number;

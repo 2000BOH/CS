@@ -69,10 +69,10 @@ function fmtShort(iso?: string) {
 function statusColor(s: string) {
   const m: Record<string, string> = {
     '접수': 'bg-gray-100 text-gray-700',
-    '진행중': 'bg-blue-100 text-blue-700',
-    '영선팀': 'bg-yellow-100 text-yellow-700',
-    '부서이관': 'bg-orange-100 text-orange-700',
+    '영선': 'bg-yellow-100 text-yellow-700',
     '외부업체': 'bg-red-100 text-red-700',
+    '청소': 'bg-sky-100 text-sky-700',
+    '퇴실': 'bg-amber-100 text-amber-700',
     '완료': 'bg-green-100 text-green-700',
   };
   return m[s] || 'bg-gray-100 text-gray-600';

@@ -94,11 +94,10 @@ function getDisplayContent(c: Complaint, type: CardType): string {
 
 const STATUS_COLOR: Record<string, string> = {
   '접수': 'bg-blue-100 text-blue-700 border border-blue-200',
-  '영선팀': 'bg-teal-100 text-teal-700 border border-teal-200',
-  '진행중': 'bg-orange-100 text-orange-700 border border-orange-200',
-  '부서이관': 'bg-purple-100 text-purple-700 border border-purple-200',
+  '영선': 'bg-teal-100 text-teal-700 border border-teal-200',
   '외부업체': 'bg-indigo-100 text-indigo-700 border border-indigo-200',
-  '청소요청': 'bg-sky-100 text-sky-700 border border-sky-200',
+  '청소': 'bg-sky-100 text-sky-700 border border-sky-200',
+  '퇴실': 'bg-amber-100 text-amber-700 border border-amber-200',
   '완료': 'bg-green-100 text-green-700 border border-green-200',
 };
 
@@ -493,14 +492,14 @@ export function RoomHistoryPage({ complaints, rooms, onUpdate, onRoomUpdate, onI
                               <div>
                                 <label className="block text-xs font-semibold text-gray-600 mb-1">처리상태</label>
                                 <div className="flex gap-1 flex-wrap">
-                                  {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'] as const).map(st => (
+                                  {(['접수', '영선', '외부업체', '청소', '퇴실', '완료'] as const).map(st => (
                                     <button key={st} onClick={() => handleStatusChange(complaint.id, st)}
                                       className={`px-2 py-1 rounded text-xs font-semibold transition-colors ${complaint.상태 === st
                                         ? st === '접수' ? 'bg-blue-600 text-white'
-                                          : st === '영선팀' ? 'bg-teal-600 text-white'
-                                            : st === '진행중' ? 'bg-orange-600 text-white'
-                                              : st === '부서이관' ? 'bg-purple-600 text-white'
-                                                : st === '외부업체' ? 'bg-indigo-600 text-white'
+                                          : st === '영선' ? 'bg-teal-600 text-white'
+                                            : st === '외부업체' ? 'bg-indigo-600 text-white'
+                                              : st === '청소' ? 'bg-sky-600 text-white'
+                                                : st === '퇴실' ? 'bg-amber-600 text-white'
                                                   : 'bg-green-600 text-white'
                                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}>

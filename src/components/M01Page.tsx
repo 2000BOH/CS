@@ -92,7 +92,6 @@ export function M01Page({ complaints, rooms, onUpdate }: M01PageProps) {
     const nowConfirmed = !task.담당자확인;
     onUpdate(task.id, {
       담당자확인_M01: nowConfirmed,
-      ...(nowConfirmed ? { 상태: '진행중' } : {}),
     });
   };
 
@@ -227,7 +226,7 @@ export function M01Page({ complaints, rooms, onUpdate }: M01PageProps) {
                         {task.원본데이터.상태 && (
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             task.원본데이터.상태 === '완료' ? 'bg-green-100 text-green-700' :
-                            task.원본데이터.상태 === '진행중' ? 'bg-orange-100 text-orange-700' :
+                            task.원본데이터.상태 === '영선' ? 'bg-teal-100 text-teal-700' :
                             'bg-gray-100 text-gray-700'
                           }`}>
                             {task.원본데이터.상태}

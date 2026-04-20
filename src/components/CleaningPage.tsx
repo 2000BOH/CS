@@ -34,9 +34,9 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
     }
   };
 
-  // 청소 구분 + 퇴실상태 "퇴실" + 영선에서 "청소요청"으로 넘긴 건도 포함
-  const cleaningComplaints = complaints.filter(c => 
-    c.구분 === '청소' || c.퇴실상태 === '퇴실' || c.상태 === '청소요청'
+  // 청소 구분 + 상태 '청소' + 퇴실 완료된 건 포함
+  const cleaningComplaints = complaints.filter(c =>
+    c.구분 === '청소' || c.상태 === '청소' || c.퇴실상태 === '퇴실완료'
   );
 
   // 날짜 비교 함수
@@ -129,7 +129,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
       상태: '완료',
       완료일시: new Date().toISOString(),
     };
-    if (target?.퇴실상태 === '퇴실') {
+    if (target?.퇴실상태 === '퇴실완료') {
       updates.퇴실상태 = '완료';
     }
     onUpdate(id, updates);
@@ -378,10 +378,10 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onUpdate(complaint.id, { 상태: '진행중' });
+                        onUpdate(complaint.id, { 상태: '청소' });
                       }}
                       className={`px-2 py-1 rounded-lg transition-colors text-xs font-medium shadow-sm flex-shrink-0 ${
-                        complaint.상태 === '진행중'
+                        complaint.상태 === '청소'
                           ? 'bg-green-600 text-white'
                           : 'bg-gray-300 text-white hover:bg-gray-400'
                       }`}
@@ -624,8 +624,8 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                     
                     <td className="px-2 py-1 whitespace-nowrap text-center">
                       <div className="flex gap-1 items-center justify-center">
-                        {(['접수', '진행중', '완료'] as const).map((status, index) => {
-                          const currentIndex = ['접수', '진행중', '완료'].indexOf(complaint.상태 as any);
+                        {(['접수', '청소', '완료'] as const).map((status, index) => {
+                          const currentIndex = ['접수', '청소', '완료'].indexOf(complaint.상태 as any);
                           const isPast = index < currentIndex;
                           const isActive = complaint.상태 === status;
                           
@@ -794,8 +794,8 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                         </td>
                         <td className="px-2 py-1 whitespace-nowrap text-center">
                           <div className="flex gap-1 items-center justify-center">
-                            {(['접수', '진행중', '완료'] as const).map((status, index) => {
-                              const currentIndex = ['접수', '진행중', '완료'].indexOf(complaint.상태 as any);
+                            {(['접수', '청소', '완료'] as const).map((status, index) => {
+                              const currentIndex = ['접수', '청소', '완료'].indexOf(complaint.상태 as any);
                               const isPast = index < currentIndex;
                               const isActive = complaint.상태 === status;
                               
@@ -808,7 +808,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                                         상태: status,
                                         ...(status === '완료' ? {
                                           완료일시: new Date().toISOString(),
-                                          ...(complaint.퇴실상태 === '퇴실' ? { 퇴실상태: '완료' } : {})
+                                          ...(complaint.퇴실상태 === '퇴실완료' ? { 퇴실상태: '완료' } : {})
                                         } : {})
                                       });
                                     }}

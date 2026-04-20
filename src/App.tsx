@@ -216,17 +216,19 @@ export default function App() {
         }
         // 깨진 한글 데이터 복구 (DB에 저장된 깨진 문자열 정규화)
         const sanitized = (data as Complaint[]).map(c => {
-          const validStatuses = ['접수', '처리중', '영선이관', '외부업체', '완료', '영선팀', '진행중', '부서이관', '청소요청', '퇴실'];
-          let fixedStatus = c.상태;
+          const validStatuses = ['접수', '영선', '외부업체', '청소', '퇴실', '완료'];
+          let fixedStatus = c.상태 as string;
           if (!validStatuses.includes(fixedStatus)) {
-            // 부분 매칭으로 복구 시도
-            if (fixedStatus?.includes('외부')) fixedStatus = '외부업체';
-            else if (fixedStatus?.includes('접수') || fixedStatus?.includes('접')) fixedStatus = '접수';
-            else if (fixedStatus?.includes('영선이관')) fixedStatus = '영선이관';
-            else if (fixedStatus?.includes('영선')) fixedStatus = '영선이관';
-            else if (fixedStatus?.includes('처리') || fixedStatus?.includes('진행')) fixedStatus = '처리중';
-            else if (fixedStatus?.includes('이관')) fixedStatus = '영선이관';
+            // 구 상태 → 신 상태 매핑
+            if (fixedStatus === '처리중' || fixedStatus === '진행중' || fixedStatus === '부서이관') fixedStatus = '접수';
+            else if (fixedStatus === '영선이관' || fixedStatus === '영선팀') fixedStatus = '영선';
+            else if (fixedStatus === '청소요청') fixedStatus = '청소';
+            else if (fixedStatus?.includes('외부')) fixedStatus = '외부업체';
+            else if (fixedStatus?.includes('영선') || fixedStatus?.includes('이관')) fixedStatus = '영선';
+            else if (fixedStatus?.includes('청소')) fixedStatus = '청소';
+            else if (fixedStatus?.includes('퇴실')) fixedStatus = '퇴실';
             else if (fixedStatus?.includes('완료')) fixedStatus = '완료';
+            else if (fixedStatus?.includes('접수') || fixedStatus?.includes('접') || fixedStatus?.includes('처리') || fixedStatus?.includes('진행')) fixedStatus = '접수';
             else fixedStatus = '접수'; // 기본값
 
             if (fixedStatus !== c.상태) {
@@ -846,7 +848,7 @@ export default function App() {
 
       switch (selectedDateFilter) {
         case '오늘 연락':
-          if (complaint.상태 === '접' || !isToday(complaint.등록일시)) return false;
+          if (complaint.상태 === '접수' || !isToday(complaint.등록일시)) return false;
           break;
         case '오늘 조치':
           if (complaint.상태 !== '완료' || !complaint.완료일시 || !isToday(complaint.완료일시)) return false;
@@ -881,9 +883,10 @@ export default function App() {
   const stats = {
     전체: complaints.length,
     접수: complaints.filter(c => c.상태 === '접수').length,
-    처리중: complaints.filter(c => c.상태 === '처리중' || c.상태 === '진행중').length,
-    영선이관: complaints.filter(c => c.상태 === '영선이관' || c.상태 === '영선팀' || c.상태 === '부서이관').length,
+    영선: complaints.filter(c => c.상태 === '영선').length,
     외부업체: complaints.filter(c => c.상태 === '외부업체').length,
+    청소: complaints.filter(c => c.상태 === '청소').length,
+    퇴실: complaints.filter(c => c.상태 === '퇴실').length,
     완료: complaints.filter(c => c.상태 === '완료').length
   };
 

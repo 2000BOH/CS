@@ -78,15 +78,14 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
     switch (status) {
       case '접수':
         return 'bg-blue-100 text-blue-700 border-blue-200';
-      case '처리중':
-      case '진행중':
-        return 'bg-orange-100 text-orange-700 border-orange-200';
-      case '영선이관':
-      case '영선팀':
-      case '부서이관':
+      case '영선':
         return 'bg-teal-100 text-teal-700 border-teal-200';
       case '외부업체':
         return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case '청소':
+        return 'bg-sky-100 text-sky-700 border-sky-200';
+      case '퇴실':
+        return 'bg-amber-100 text-amber-700 border-amber-200';
       case '완료':
         return 'bg-green-100 text-green-700 border-green-200';
       default:
@@ -401,9 +400,10 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                               className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${getStatusColor(complaint.상태)}`}
                             >
                               <option value="접수">접수</option>
-                              <option value="처리중">처리중</option>
-                              <option value="영선이관">영선이관</option>
+                              <option value="영선">영선</option>
                               <option value="외부업체">외부업체</option>
+                              <option value="청소">청소</option>
+                              <option value="퇴실">퇴실</option>
                               <option value="완료">완료</option>
                             </select>
                           </div>
@@ -661,9 +661,10 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                                     className={`w-full px-2 py-1.5 text-xs border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${getStatusColor(complaint.상태)}`}
                                   >
                                     <option value="접수">접수</option>
-                                    <option value="처리중">처리중</option>
-                                    <option value="영선이관">영선이관</option>
+                                    <option value="영선">영선</option>
                                     <option value="외부업체">외부업체</option>
+                                    <option value="청소">청소</option>
+                                    <option value="퇴실">퇴실</option>
                                     <option value="완료">완료</option>
                                   </select>
                                 </div>
@@ -1185,7 +1186,7 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                             <label className="text-xs font-medium text-gray-600 block mb-1">
                               처리상태 변경                            </label>
                             <div className="flex gap-1 flex-wrap">
-                              {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'] as const).map((status) => (
+                              {(['접수', '영선', '외부업체', '청소', '퇴실', '완료'] as const).map((status) => (
                                 <button
                                   key={status}
                                   onClick={(e) => {
@@ -1194,10 +1195,10 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                                   }}
                                   className={`px-2 py-1 rounded text-xs font-medium transition-colors ${complaint.상태 === status
                                     ? status === '접수' ? 'bg-blue-600 text-white'
-                                      : status === '영선팀' ? 'bg-teal-600 text-white'
-                                        : status === '진행중' ? 'bg-orange-600 text-white'
-                                          : status === '부서이관' ? 'bg-purple-600 text-white'
-                                            : status === '외부업체' ? 'bg-indigo-600 text-white'
+                                      : status === '영선' ? 'bg-teal-600 text-white'
+                                        : status === '외부업체' ? 'bg-indigo-600 text-white'
+                                          : status === '청소' ? 'bg-sky-600 text-white'
+                                            : status === '퇴실' ? 'bg-amber-600 text-white'
                                               : 'bg-green-600 text-white'
                                     : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
                                     }`}
@@ -1425,7 +1426,7 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                           <label className="text-xs font-medium text-gray-600 block mb-1">
                             처리상태 변경                          </label>
                           <div className="flex gap-1 flex-wrap">
-                            {(['접수', '영선팀', '진행중', '부서이관', '외부업체', '완료'] as const).map((status) => (
+                            {(['접수', '영선', '외부업체', '청소', '퇴실', '완료'] as const).map((status) => (
                               <button
                                 key={status}
                                 onClick={(e) => {
@@ -1434,10 +1435,10 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                                 }}
                                 className={`px-2 py-1 rounded text-xs font-medium transition-colors ${complaint.상태 === status
                                   ? status === '접수' ? 'bg-blue-600 text-white'
-                                    : status === '영선팀' ? 'bg-teal-600 text-white'
-                                      : status === '진행중' ? 'bg-orange-600 text-white'
-                                        : status === '부서이관' ? 'bg-purple-600 text-white'
-                                          : status === '외부업체' ? 'bg-indigo-600 text-white'
+                                    : status === '영선' ? 'bg-teal-600 text-white'
+                                      : status === '외부업체' ? 'bg-indigo-600 text-white'
+                                        : status === '청소' ? 'bg-sky-600 text-white'
+                                          : status === '퇴실' ? 'bg-amber-600 text-white'
                                             : 'bg-green-600 text-white'
                                   : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-50'
                                   }`}
@@ -1496,10 +1497,10 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                               >
                                 <option value="접수">접수</option>
-                                <option value="영선팀">영선팀</option>
-                                <option value="진행중">진행중</option>
-                                <option value="부서이관">부서이관</option>
+                                <option value="영선">영선</option>
                                 <option value="외부업체">외부업체</option>
+                                <option value="청소">청소</option>
+                                <option value="퇴실">퇴실</option>
                                 <option value="완료">완료</option>
                               </select>
                             ) : (

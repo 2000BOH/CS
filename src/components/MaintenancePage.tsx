@@ -296,12 +296,10 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       '접수': 'bg-blue-200 text-blue-800 border-blue-400',
-      '영선팀': 'bg-teal-200 text-teal-800 border-teal-400',
-      '진행중': 'bg-orange-200 text-orange-800 border-orange-400',
-      '부서이관': 'bg-purple-200 text-purple-800 border-purple-400',
+      '영선': 'bg-teal-200 text-teal-800 border-teal-400',
       '외부업체': 'bg-indigo-200 text-indigo-800 border-indigo-400',
-      // 청소요청은 더 강한 색감으로 (선택 상태가 확실히 보이도록)
-      '청소요청': 'bg-sky-500 text-white border-sky-600',
+      '청소': 'bg-sky-500 text-white border-sky-600',
+      '퇴실': 'bg-amber-200 text-amber-800 border-amber-400',
       '완료': 'bg-green-200 text-green-800 border-green-400'
     };
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';
@@ -627,7 +625,7 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                     <div>
                       <label className="text-xs font-medium text-gray-600 block mb-1">상태 변경</label>
                       <div className="flex gap-1 flex-wrap">
-                        {['접수', '영선팀', '진행중', '부서이관', '외부업체', '청소요청', '완료'].map((status) => (
+                        {['접수', '영선', '외부업체', '청소', '퇴실', '완료'].map((status) => (
                           <button
                             key={status}
                             onClick={(e) => {
@@ -756,11 +754,10 @@ export function MaintenancePage({ complaints, onUpdate, onImageClick }: Maintena
                         className="px-2 py-1 border border-gray-300 rounded text-xs text-gray-900 bg-white"
                       >
                         <option value="접수">접수</option>
-                        <option value="영선팀">영선팀</option>
-                        <option value="진행중">진행중</option>
-                        <option value="부서이관">부서이관</option>
+                        <option value="영선">영선</option>
                         <option value="외부업체">외부업체</option>
-                        <option value="청소요청">청소요청</option>
+                        <option value="청소">청소</option>
+                        <option value="퇴실">퇴실</option>
                         <option value="완료">완료</option>
                       </select>
                     </td>

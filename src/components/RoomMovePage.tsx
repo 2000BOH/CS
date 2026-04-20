@@ -469,11 +469,10 @@ export function RoomMovePage({ complaints, rooms, onUpdate, onRoomUpdate, onRoom
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       '접수': 'bg-blue-100 text-blue-700 border-blue-300',
-      '영선팀': 'bg-teal-100 text-teal-700 border-teal-300',
-      '진행중': 'bg-orange-100 text-orange-700 border-orange-300',
-      '부서이관': 'bg-purple-100 text-purple-700 border-purple-300',
+      '영선': 'bg-teal-100 text-teal-700 border-teal-300',
       '외부업체': 'bg-indigo-100 text-indigo-700 border-indigo-300',
-      '청소요청': 'bg-sky-100 text-sky-700 border-sky-300',
+      '청소': 'bg-sky-100 text-sky-700 border-sky-300',
+      '퇴실': 'bg-amber-100 text-amber-700 border-amber-300',
       '완료': 'bg-green-100 text-green-700 border-green-300'
     };
     return colors[status] || 'bg-gray-100 text-gray-700 border-gray-300';

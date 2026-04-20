@@ -238,11 +238,11 @@ export function ComplaintForm({ onSubmit, selectedRoom, onRoomChange, onRoomUpda
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="접수">접수</option>
-                <option value="처리중">처리중</option>
-                <option value="영선이관">영선이관</option>
+                <option value="영선">영선</option>
                 <option value="외부업체">외부업체</option>
-                <option value="완료">완료</option>
+                <option value="청소">청소</option>
                 <option value="퇴실">퇴실</option>
+                <option value="완료">완료</option>
               </select>
             </div>
 
