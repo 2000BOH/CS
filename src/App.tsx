@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { PenLine, Search, Wrench, ArrowRightLeft, ClipboardCheck, Sparkles, Bed, History, Info } from 'lucide-react';
 import { Complaint, RoomInfo } from './types';
 import { InputPage } from './components/InputPage';
@@ -124,6 +124,66 @@ export default function App() {
     }
   }, [isLoggedIn]);
 
+  // 운영종료일이 지난 객실 자동 퇴실 처리 (세션당 1회)
+  const autoExitCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    if (autoExitCheckedRef.current) return;
+    if (rooms.length === 0) return;
+    // complaints 로드 완료까지 대기 (한 번 fetch 끝난 후 실행 보장)
+    autoExitCheckedRef.current = true;
+
+    const run = async () => {
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+
+      for (const room of rooms) {
+        if (!room.운영종료일) continue;
+        const endDate = new Date(room.운영종료일);
+        if (isNaN(endDate.getTime())) continue;
+        if (endDate > today) continue; // 아직 미도래 → 스킵
+
+        const 차수숫자 = String(room.차수).replace(/[^0-9]/g, '');
+        const 호수숫자 = String(room.호수).replace(/[^0-9]/g, '');
+
+        // 이미 퇴실 민원이 있으면 스킵
+        const exists = complaints.some(c => {
+          const c차수 = c.차수.replace(/[^0-9]/g, '');
+          const c호실 = c.호실.replace(/[^0-9]/g, '');
+          return c차수 === 차수숫자 && c호실 === 호수숫자 && c.구분 === '퇴실';
+        });
+        if (exists) continue;
+
+        const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const newComplaint: Complaint = {
+          id: uniqueId,
+          차수: room.차수,
+          호실: room.호수,
+          구분: '퇴실',
+          내용: room.타입 || '운영종료일 경과 자동 퇴실',
+          조치사항: room.숙박형태 || '',
+          상태: '퇴실',
+          등록일시: new Date().toISOString(),
+          등록자: 'system',
+          운영종료일: room.운영종료일,
+          퇴실상태: '준비',
+        };
+
+        try {
+          const { error } = await supabase.from('complaints').insert([newComplaint]);
+          if (error && error.code !== 'PGRST205') {
+            console.error('자동 퇴실 생성 오류:', error);
+          }
+          setComplaints(prev => [newComplaint, ...prev]);
+        } catch (err) {
+          console.error('자동 퇴실 생성 예외:', err);
+        }
+      }
+    };
+
+    run();
+  }, [isLoggedIn, rooms, complaints]);
+
   const loadComplaints = async () => {
     try {
       const { data, error } = await supabase
@@ -156,7 +216,7 @@ export default function App() {
         }
         // 깨진 한글 데이터 복구 (DB에 저장된 깨진 문자열 정규화)
         const sanitized = (data as Complaint[]).map(c => {
-          const validStatuses = ['접수', '처리중', '영선이관', '외부업체', '완료', '영선팀', '진행중', '부서이관', '청소요청'];
+          const validStatuses = ['접수', '처리중', '영선이관', '외부업체', '완료', '영선팀', '진행중', '부서이관', '청소요청', '퇴실'];
           let fixedStatus = c.상태;
           if (!validStatuses.includes(fixedStatus)) {
             // 부분 매칭으로 복구 시도

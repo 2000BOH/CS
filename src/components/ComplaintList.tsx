@@ -116,6 +116,12 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
       updates.구분 = '영선';
     }
 
+    // 퇴실 상태 선택 시 구분도 퇴실로 매핑 + 퇴실상태 초기화
+    if (newStatus === '퇴실') {
+      updates.구분 = '퇴실';
+      updates.퇴실상태 = '준비';
+    }
+
     if (newStatus === '완료') {
       updates.완료일시 = new Date().toISOString();
     }
@@ -470,12 +476,13 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                               <option value="영선이관">영선이관</option>
                               <option value="외부업체">외부업체</option>
                               <option value="완료">완료</option>
+                              <option value="퇴실">퇴실</option>
                             </select>
                           </div>
 
                           {complaint.완료일시 && (
                             <div className="text-xs text-gray-500 pt-2 border-t">
-                              완료일시: 
+                              완료일시:
                               <span 
                                 className="cursor-help ml-1" 
                                 title={formatTime(complaint.완료일시)}
@@ -650,12 +657,13 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                               <option value="영선이관">영선이관</option>
                               <option value="외부업체">외부업체</option>
                               <option value="완료">완료</option>
+                              <option value="퇴실">퇴실</option>
                             </select>
                           </div>
 
                           {complaint.완료일시 && (
                             <div className="text-xs text-gray-500 pt-2 border-t">
-                              완료일시: {formatDateTime(complaint.완료일시)}
+                              완료일시:{formatDateTime(complaint.완료일시)}
                             </div>
                           )}
                         </div>
@@ -707,6 +715,7 @@ export function ComplaintList({ complaints, onUpdate, selectedStatus, selectedCa
                             <option value="영선이관">영선이관</option>
                             <option value="외부업체">외부업체</option>
                             <option value="완료">완료</option>
+                            <option value="퇴실">퇴실</option>
                           </select>
                         ) : (
                           <span 
