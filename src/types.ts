@@ -31,6 +31,9 @@ export interface Complaint {
   담당자확인_M01?: boolean; // M01 페이지 담당자 확인
   담당자확인_M02?: boolean; // M02 페이지 담당자 확인
   담당자확인_M03?: boolean; // M03 페이지 담당자 확인
+  지원상태?: '요청' | '완료'; // M04 지원 페이지 플로우 (요청=대기, 완료=처리완료)
+  지원요청일시?: string;
+  지원완료일시?: string;
   // 객실체크 페이지 전용 필드
   퇴실점검일?: string;
   점검자?: string;

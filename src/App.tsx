@@ -11,6 +11,7 @@ import { InfoPage } from './components/InfoPage';
 import { M01Page } from './components/M01Page';
 import { M02Page } from './components/M02Page';
 import { M03Page } from './components/M03Page';
+import { M04Page } from './components/M04Page';
 import { AccommodationTypePage } from './components/AccommodationTypePage';
 import { RoomHistoryPage } from './components/RoomHistoryPage';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -36,7 +37,7 @@ const PAGE_ICONS: Record<string, (props: { className?: string }) => JSX.Element>
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUserId, setCurrentUserId] = useState('');
-  const [currentPage, setCurrentPage] = useState<'입력' | '전체조회' | '영선' | '객실이동' | '객실체크' | '객실정비' | '안내/입력' | '숙박형태' | '객실히스토리' | 'M01' | 'M02' | 'M03' | '관리자'>('입력');
+  const [currentPage, setCurrentPage] = useState<'입력' | '전체조회' | '영선' | '객실이동' | '객실체크' | '객실정비' | '안내/입력' | '숙박형태' | '객실히스토리' | 'M01' | 'M02' | 'M03' | 'M04' | '관리자'>('입력');
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [rooms, setRooms] = useState<RoomInfo[]>([]); // 객실정보 상태 추가
@@ -109,7 +110,7 @@ export default function App() {
   // 역할별 메뉴에 현재 페이지가 없으면 첫 번째 허용 페이지로 이동 (화이트 스크린/되돌리기 불가 방지)
   useEffect(() => {
     if (!currentUserId) return;
-    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : currentUserId === '01' ? ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01', '관리자'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01'];
+    const allowed = currentUserId === '10' ? ['객실정비'] : currentUserId === '08' ? ['객실이동'] : currentUserId === '07' ? ['영선'] : currentUserId === '01' ? ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01', 'M04', '관리자'] : ['입력', '전체조회', '영선', '객실이동', '객실체크', '객실정비', '숙박형태', '객실히스토리', '안내/입력', 'M03', 'M02', 'M01', 'M04'];
     if (allowed.length > 0 && !allowed.includes(currentPage)) {
       setCurrentPage(allowed[0] as typeof currentPage);
     }
@@ -921,8 +922,8 @@ export default function App() {
                     </button>
                   )}
                   {currentUserId !== '10' && currentUserId !== '08' && currentUserId !== '07' && (
-                    (['M03', 'M02', 'M01'] as const).map((page) => {
-                      const label = page === 'M03' ? '태형' : page === 'M02' ? '아름' : '동훈';
+                    (['M03', 'M02', 'M01', 'M04'] as const).map((page) => {
+                      const label = page === 'M03' ? '태형' : page === 'M02' ? '아름' : page === 'M01' ? '동훈' : '지원';
                       return (
                         <button
                           key={page}
@@ -1105,6 +1106,14 @@ export default function App() {
 
           {currentPage === 'M03' && (
             <M03Page
+              complaints={complaints}
+              rooms={rooms}
+              onUpdate={updateComplaint}
+            />
+          )}
+
+          {currentPage === 'M04' && (
+            <M04Page
               complaints={complaints}
               rooms={rooms}
               onUpdate={updateComplaint}

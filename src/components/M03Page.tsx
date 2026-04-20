@@ -99,6 +99,14 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
     });
   };
 
+  const handleSupportRequest = (task: TaskItem) => {
+    if (task.원본데이터.지원상태) return;
+    onUpdate(task.id, {
+      지원상태: '요청',
+      지원요청일시: new Date().toISOString(),
+    });
+  };
+
   const formatDate = (dateString: string) => {
     try {
       return format(parseISO(dateString), 'yy.MM.dd (E) HH:mm', { locale: ko });
@@ -184,6 +192,7 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b">조치사항</th>
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b whitespace-nowrap">기준일</th>
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b whitespace-nowrap">등록일시</th>
+                  <th className="px-3 py-0.5 text-center text-xs font-medium border-b whitespace-nowrap">지원요청</th>
                   <th className="px-3 py-0.5 text-center text-xs font-medium border-b whitespace-nowrap">담당자확인</th>
                   <th className="px-3 py-0.5 text-center text-xs font-medium border-b whitespace-nowrap">상세</th>
                 </tr>
@@ -241,6 +250,27 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
                         {formatDate(task.원본데이터.등록일시)}
                       </td>
                       <td className="px-3 py-0.5 text-center whitespace-nowrap">
+                        {task.원본데이터.지원상태 === '완료' ? (
+                          <span className="px-3 py-1 rounded text-xs font-medium bg-green-600 text-white">
+                            지원완료
+                          </span>
+                        ) : task.원본데이터.지원상태 === '요청' ? (
+                          <span className="px-3 py-1 rounded text-xs font-medium bg-orange-500 text-white">
+                            지원요청중
+                          </span>
+                        ) : (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSupportRequest(task);
+                            }}
+                            className="px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          >
+                            지원요청
+                          </button>
+                        )}
+                      </td>
+                      <td className="px-3 py-0.5 text-center whitespace-nowrap">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -268,7 +298,7 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
                   if (expandedId === task.id) {
                     rows.push(
                       <tr key={`${task.id}-expanded`} className="bg-gray-50">
-                        <td colSpan={10} className="px-6 py-4">
+                        <td colSpan={11} className="px-6 py-4">
                           <div className="grid grid-cols-2 gap-6">
                             <div>
                               <label className="block text-xs font-semibold text-gray-600 mb-2">민원 내용 (전체)</label>
