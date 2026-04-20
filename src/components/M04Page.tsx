@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { LifeBuoy, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isThisWeek, isThisMonth, isBefore, startOfDay } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { Complaint, RoomInfo } from '../types';
 
@@ -23,9 +23,11 @@ interface TaskItem {
 }
 
 type StatusFilter = '요청' | '완료' | '전체';
+type DateFilter = '미처리' | '오늘' | '이번주' | '이번달' | '전체';
 
 export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('요청');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('오늘');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const tasks: TaskItem[] = useMemo(() => {
@@ -54,14 +56,31 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
       });
   }, [complaints, rooms]);
 
+  const matchDateFilter = (t: TaskItem, filter: DateFilter): boolean => {
+    if (filter === '전체') return true;
+    if (!t.기준날짜) return false;
+    try {
+      const date = parseISO(t.기준날짜);
+      const today = startOfDay(new Date());
+      if (filter === '미처리') return isBefore(date, today) && t.지원상태 !== '완료';
+      if (filter === '오늘') return isToday(date);
+      if (filter === '이번주') return isThisWeek(date, { locale: ko });
+      if (filter === '이번달') return isThisMonth(date);
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
   const filteredTasks = useMemo(() => {
     return tasks
-      .filter(t => statusFilter === '전체' ? true : t.지원상태 === statusFilter)
+      .filter(t => (statusFilter === '전체' ? true : t.지원상태 === statusFilter))
+      .filter(t => matchDateFilter(t, dateFilter))
       .sort((a, b) => {
         if (a.지원상태 !== b.지원상태) return a.지원상태 === '요청' ? -1 : 1;
         return (b.기준날짜 || '').localeCompare(a.기준날짜 || '');
       });
-  }, [tasks, statusFilter]);
+  }, [tasks, statusFilter, dateFilter]);
 
   const handleComplete = (task: TaskItem) => {
     // 토글: 완료 → 요청으로 복구, 요청 → 완료로 전환
@@ -96,10 +115,23 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
     }
   };
 
-  const counts = {
+  const statusScopedTasks = useMemo(
+    () => tasks.filter(t => (statusFilter === '전체' ? true : t.지원상태 === statusFilter)),
+    [tasks, statusFilter]
+  );
+
+  const statusCounts = {
     요청: tasks.filter(t => t.지원상태 === '요청').length,
     완료: tasks.filter(t => t.지원상태 === '완료').length,
     전체: tasks.length,
+  };
+
+  const dateCounts: Record<DateFilter, number> = {
+    미처리: statusScopedTasks.filter(t => matchDateFilter(t, '미처리')).length,
+    오늘: statusScopedTasks.filter(t => matchDateFilter(t, '오늘')).length,
+    이번주: statusScopedTasks.filter(t => matchDateFilter(t, '이번주')).length,
+    이번달: statusScopedTasks.filter(t => matchDateFilter(t, '이번달')).length,
+    전체: statusScopedTasks.length,
   };
 
   return (
@@ -112,21 +144,42 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
         <p className="text-blue-100 text-sm">M01~M03 담당자가 '지원요청'한 건을 처리하는 페이지</p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          {(['요청', '완료', '전체'] as StatusFilter[]).map((filter) => (
-            <button
-              key={filter}
-              onClick={() => setStatusFilter(filter)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                statusFilter === filter
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {filter} ({counts[filter]})
-            </button>
-          ))}
+      <div className="bg-white rounded-lg shadow-md p-4 space-y-3">
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-2">처리상태</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['요청', '완료', '전체'] as StatusFilter[]).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setStatusFilter(filter)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  statusFilter === filter
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {filter} ({statusCounts[filter]})
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 mb-2">기간 (요청일시 기준)</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {(['미처리', '오늘', '이번주', '이번달', '전체'] as DateFilter[]).map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setDateFilter(filter)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  dateFilter === filter
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {filter} ({dateCounts[filter]})
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
