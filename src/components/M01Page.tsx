@@ -132,7 +132,7 @@ export function M01Page({ complaints, rooms, onUpdate }: M01PageProps) {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <Calendar className="w-8 h-8" />
-          <h1 className="text-2xl font-bold">M01 - 인스파이어 관리</h1>
+          <h1 className="text-2xl font-bold">동훈 - 인스파이어 관리</h1>
         </div>
         <p className="text-blue-100 text-sm">숙박형태 "인스파이어" 업무 체크리스트</p>
       </div>

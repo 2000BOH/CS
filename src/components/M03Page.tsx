@@ -134,7 +134,7 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
       <div className="bg-gradient-to-r from-green-600 to-green-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <Calendar className="w-8 h-8" />
-          <h1 className="text-2xl font-bold">M03 - 객실정비 및 일반 관리</h1>
+          <h1 className="text-2xl font-bold">태형 - 객실정비 및 일반 관리</h1>
         </div>
         <p className="text-green-100 text-sm">기타 객실 업무 체크리스트</p>
       </div>

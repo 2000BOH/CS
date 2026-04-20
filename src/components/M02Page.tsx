@@ -132,7 +132,7 @@ export function M02Page({ complaints, rooms, onUpdate }: M02PageProps) {
       <div className="bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <Calendar className="w-8 h-8" />
-          <h1 className="text-2xl font-bold">M02 - 장박 고객 관리</h1>
+          <h1 className="text-2xl font-bold">아름 - 장박 고객 관리</h1>
         </div>
         <p className="text-purple-100 text-sm">숙박형태 "장박_개인", "장박_법인" 업무 체크리스트</p>
       </div>

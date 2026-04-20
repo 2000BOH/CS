@@ -139,7 +139,7 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <LifeBuoy className="w-8 h-8" />
-          <h1 className="text-2xl font-bold">M04 - 지원</h1>
+          <h1 className="text-2xl font-bold">지원</h1>
         </div>
         <p className="text-blue-100 text-sm">M01~M03 담당자가 '지원요청'한 건을 처리하는 페이지</p>
       </div>
