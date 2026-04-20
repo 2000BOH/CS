@@ -55,7 +55,7 @@ export function RoomHistory({ selectedRoom, onRoomChange, complaints, onUpdate, 
   const [editingCardAccommodationType, setEditingCardAccommodationType] = useState<string | null>(null);
   const 호실InputRef = useRef<HTMLInputElement>(null);
 
-  const categories = ['영선', 'CS', '입실', '퇴실', '청소'];
+  const categories = ['영선', 'CS', '입실', '퇴실', '청소', '정보변경'];
 
   // 카테고리 토글 함수
   const toggleCategory = (category: string) => {

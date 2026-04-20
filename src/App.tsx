@@ -391,8 +391,53 @@ export default function App() {
     }
   };
 
+  // 호실정보 변경 내역을 '정보변경' 민원으로 기록 (객실히스토리 보존용)
+  const logRoomInfoChange = async (
+    차수: string,
+    호실: string,
+    diffs: Array<{ label: string; before?: string | null; after?: string | null }>
+  ) => {
+    const normalize = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
+    const realDiffs = diffs
+      .map(d => ({ label: d.label, before: normalize(d.before), after: normalize(d.after) }))
+      .filter(d => d.before !== d.after);
+    if (realDiffs.length === 0) return;
+
+    const contentLines = realDiffs.map(
+      d => `${d.label}: ${d.before || '(없음)'} → ${d.after || '(없음)'}`
+    );
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const now = new Date().toISOString();
+    const newComplaint: Complaint = {
+      id: uniqueId,
+      차수,
+      호실,
+      구분: '정보변경',
+      내용: contentLines.join('\n'),
+      조치사항: '',
+      상태: '완료',
+      등록일시: now,
+      완료일시: now,
+      등록자: currentUserId || 'system',
+    };
+
+    try {
+      const { error } = await supabase.from('complaints').insert([newComplaint]);
+      if (error && error.code !== 'PGRST205') {
+        console.error('정보변경 기록 오류:', error);
+      }
+    } catch (err) {
+      console.error('정보변경 기록 예외:', err);
+    }
+    setComplaints(prev => [newComplaint, ...prev]);
+  };
+
   // 객실정보 업데이트 함수 추가
   const updateRoom = async (차수: string, 호수: string, updates: Partial<RoomInfo>) => {
+    // 정보변경 로그용: 기존 값 스냅샷
+    const prevRoom = rooms.find(r =>
+      r.차수 == 차수 && (r.호수 == 호수 || (r as any).호실 == 호수)
+    );
 
     try {
       // DB에 upsert로 신규 객실도 생성되게 처리
@@ -434,10 +479,29 @@ export default function App() {
         }
       });
     }
+
+    // 변경 이력 기록 (객실히스토리 보존)
+    const diffs: Array<{ label: string; before?: string | null; after?: string | null }> = [];
+    if ('숙박형태' in updates) diffs.push({ label: '숙박형태', before: prevRoom?.숙박형태, after: updates.숙박형태 });
+    if ('임차인' in updates) diffs.push({ label: '입주민', before: prevRoom?.임차인, after: updates.임차인 });
+    if ('임차인연락처' in updates) diffs.push({ label: '연락처', before: prevRoom?.임차인연락처, after: updates.임차인연락처 });
+    if ('운영종료일' in updates) diffs.push({ label: '운영종료일', before: prevRoom?.운영종료일, after: updates.운영종료일 });
+    if (diffs.length > 0) {
+      await logRoomInfoChange(차수, 호수, diffs);
+    }
   };
 
   // 숙박형태 업데이트 함수
   const updateRoomAccommodationType = async (차수: string, 호실: string, 숙박형태: string) => {
+    // 정보변경 로그용: 기존 숙박형태 스냅샷
+    const 차수전숫자 = String(차수).replace(/[^0-9]/g, '');
+    const 호실전숫자 = String(호실).replace(/[^0-9]/g, '');
+    const prevRoomForLog = roomDatabase.find(r => {
+      const r차수 = String(r.차수 ?? '').replace(/[^0-9]/g, '');
+      const r호실 = String(r.호실 ?? '').replace(/[^0-9]/g, '');
+      return r차수 === 차수전숫자 && r호실 === 호실전숫자;
+    });
+    const prev숙박형태 = prevRoomForLog?.숙박형태;
 
     // 숫자만 추출
     const 차수숫자 = String(차수).replace(/[^0-9]/g, '');
@@ -564,10 +628,26 @@ export default function App() {
     if (latestComplaint) {
       await updateComplaint(latestComplaint.id, { 숙박형태 });
     }
+
+    // 6. 변경 이력 기록
+    if ((prev숙박형태 || '') !== (숙박형태 || '')) {
+      await logRoomInfoChange(차수, 호실, [
+        { label: '숙박형태', before: prev숙박형태, after: 숙박형태 }
+      ]);
+    }
   };
 
   // 객실이동 데이터 업데이트 함수 (차수+호실 기준)
   const updateRoomMoveData = async (차수: string, 호실: string, updates: Partial<Complaint>) => {
+    // 정보변경 로그용: 기존 운영종료일 스냅샷
+    const 차수전숫자 = 차수.replace(/[^0-9]/g, '');
+    const 호실전숫자 = 호실.replace(/[^0-9]/g, '');
+    const prevComplaintForLog = complaints.find(c => {
+      const c차수 = c.차수.replace(/[^0-9]/g, '');
+      const c호실 = c.호실.replace(/[^0-9]/g, '');
+      return c차수 === 차수전숫자 && c호실 === 호실전숫자 && c.운영종료일;
+    });
+    const prev운영종료일 = prevComplaintForLog?.운영종료일;
     complaints.forEach(c => {
       if (c.운영종료일) {
       }
@@ -653,6 +733,13 @@ export default function App() {
         console.error('민원 추가 중 예외 발생:', err);
         setComplaints([newComplaint, ...complaints]);
       }
+    }
+
+    // 변경 이력 기록
+    if ('운영종료일' in updates && (prev운영종료일 || '') !== (updates.운영종료일 || '')) {
+      await logRoomInfoChange(차수, 호실, [
+        { label: '운영종료일', before: prev운영종료일, after: updates.운영종료일 }
+      ]);
     }
   };
 
