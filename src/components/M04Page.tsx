@@ -64,11 +64,18 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
   }, [tasks, statusFilter]);
 
   const handleComplete = (task: TaskItem) => {
-    if (task.지원상태 === '완료') return;
-    onUpdate(task.id, {
-      지원상태: '완료',
-      지원완료일시: new Date().toISOString(),
-    });
+    // 토글: 완료 → 요청으로 복구, 요청 → 완료로 전환
+    if (task.지원상태 === '완료') {
+      onUpdate(task.id, {
+        지원상태: '요청',
+        지원완료일시: undefined,
+      });
+    } else {
+      onUpdate(task.id, {
+        지원상태: '완료',
+        지원완료일시: new Date().toISOString(),
+      });
+    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -97,12 +104,12 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-gradient-to-r from-amber-600 to-amber-700 rounded-lg shadow-lg p-6 text-white">
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg shadow-lg p-6 text-white">
         <div className="flex items-center gap-3 mb-2">
           <LifeBuoy className="w-8 h-8" />
           <h1 className="text-2xl font-bold">M04 - 지원</h1>
         </div>
-        <p className="text-amber-100 text-sm">M01~M03 담당자가 '지원요청'한 건을 처리하는 페이지</p>
+        <p className="text-blue-100 text-sm">M01~M03 담당자가 '지원요청'한 건을 처리하는 페이지</p>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-4">
@@ -113,7 +120,7 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
               onClick={() => setStatusFilter(filter)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 statusFilter === filter
-                  ? 'bg-amber-600 text-white shadow-md'
+                  ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
@@ -133,7 +140,7 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
           <div className="overflow-x-auto bg-white rounded-lg shadow-md">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-amber-700 text-white">
+                <tr className="bg-blue-700 text-white">
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b whitespace-nowrap">차수/호실</th>
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b whitespace-nowrap">숙박형태</th>
                   <th className="px-3 py-0.5 text-left text-xs font-medium border-b whitespace-nowrap">구분</th>
@@ -151,7 +158,7 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
                     <tr
                       key={task.id}
                       className={`border-b border-gray-300 cursor-pointer transition-all ${
-                        task.지원상태 === '완료' ? 'opacity-60 bg-gray-50' : 'hover:bg-amber-50'
+                        task.지원상태 === '완료' ? 'opacity-60 bg-gray-50' : 'hover:bg-blue-50'
                       }`}
                       onClick={() => setExpandedId(expandedId === task.id ? null : task.id)}
                     >
@@ -159,7 +166,7 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
                         {task.차수}차 {task.호실}호
                       </td>
                       <td className="px-3 py-0.5 whitespace-nowrap">
-                        <span className="px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-medium">
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
                           {task.숙박형태}
                         </span>
                       </td>
@@ -181,25 +188,24 @@ export function M04Page({ complaints, rooms, onUpdate }: M04PageProps) {
                         {formatDate(task.원본데이터.지원완료일시)}
                       </td>
                       <td className="px-3 py-0.5 text-center whitespace-nowrap">
-                        {task.지원상태 === '완료' ? (
-                          <span className="px-3 py-1 rounded text-xs font-medium bg-green-600 text-white">
-                            지원완료
-                          </span>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleComplete(task);
-                            }}
-                            className="px-3 py-1 rounded text-xs font-medium bg-amber-500 text-white hover:bg-amber-600"
-                          >
-                            지원완료
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleComplete(task);
+                          }}
+                          title={task.지원상태 === '완료' ? '한번 더 누르면 요청 상태로 복구됩니다' : ''}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                            task.지원상태 === '완료'
+                              ? 'bg-green-600 text-white hover:bg-green-700'
+                              : 'bg-blue-500 text-white hover:bg-blue-600'
+                          }`}
+                        >
+                          지원완료
+                        </button>
                       </td>
                       <td className="px-3 py-0.5 text-center whitespace-nowrap">
                         {expandedId === task.id ? (
-                          <ChevronUp className="w-4 h-4 text-amber-600 mx-auto" />
+                          <ChevronUp className="w-4 h-4 text-blue-600 mx-auto" />
                         ) : (
                           <ChevronDown className="w-4 h-4 text-gray-400 mx-auto" />
                         )}

@@ -100,11 +100,14 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
   };
 
   const handleSupportRequest = (task: TaskItem) => {
-    if (task.원본데이터.지원상태) return;
-    onUpdate(task.id, {
-      지원상태: '요청',
-      지원요청일시: new Date().toISOString(),
-    });
+    const cur = task.원본데이터.지원상태;
+    if (cur === '완료') {
+      onUpdate(task.id, { 지원상태: '요청', 지원완료일시: undefined });
+    } else if (cur === '요청') {
+      onUpdate(task.id, { 지원상태: undefined, 지원요청일시: undefined });
+    } else {
+      onUpdate(task.id, { 지원상태: '요청', 지원요청일시: new Date().toISOString() });
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -250,25 +253,26 @@ export function M03Page({ complaints, rooms, onUpdate }: M03PageProps) {
                         {formatDate(task.원본데이터.등록일시)}
                       </td>
                       <td className="px-3 py-0.5 text-center whitespace-nowrap">
-                        {task.원본데이터.지원상태 === '완료' ? (
-                          <span className="px-3 py-1 rounded text-xs font-medium bg-green-600 text-white">
-                            지원완료
-                          </span>
-                        ) : task.원본데이터.지원상태 === '요청' ? (
-                          <span className="px-3 py-1 rounded text-xs font-medium bg-orange-500 text-white">
-                            지원요청중
-                          </span>
-                        ) : (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSupportRequest(task);
-                            }}
-                            className="px-3 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200"
-                          >
-                            지원요청
-                          </button>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSupportRequest(task);
+                          }}
+                          title="한번 더 누르면 이전 상태로 복구됩니다"
+                          className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                            task.원본데이터.지원상태 === '완료'
+                              ? 'bg-green-600 text-white hover:bg-green-700'
+                              : task.원본데이터.지원상태 === '요청'
+                                ? 'bg-orange-500 text-white hover:bg-orange-600'
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                        >
+                          {task.원본데이터.지원상태 === '완료'
+                            ? '지원완료'
+                            : task.원본데이터.지원상태 === '요청'
+                              ? '지원요청중'
+                              : '지원요청'}
+                        </button>
                       </td>
                       <td className="px-3 py-0.5 text-center whitespace-nowrap">
                         <button
