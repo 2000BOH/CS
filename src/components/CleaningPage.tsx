@@ -34,9 +34,10 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
     }
   };
 
-  // 청소 구분 + 상태 '청소' + 퇴실 완료된 건 포함
+  // 청소 구분 + 상태 '청소'/'완료' + 퇴실 완료된 건 포함 (완료된 건도 히스토리로 유지)
   const cleaningComplaints = complaints.filter(c =>
-    c.구분 === '청소' || c.상태 === '청소' || c.퇴실상태 === '퇴실완료'
+    c.구분 === '청소' || c.상태 === '청소' ||
+    c.퇴실상태 === '퇴실완료' || c.퇴실상태 === '완료'
   );
 
   // 날짜 비교 함수
@@ -122,17 +123,12 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
     { key: '우선처리', label: '우선처리', count: cleaningComplaints.filter(c => c.우선처리).length },
   ];
 
-  // 완료 처리 — 상태='완료' + 완료일시 세팅 + 퇴실상태가 '퇴실'이면 자동으로 '완료'로 올림
+  // 완료 처리 — 상태='완료' + 완료일시 세팅 (퇴실상태는 유지하여 청소페이지 히스토리 보존)
   const handleComplete = (id: string) => {
-    const target = complaints.find(c => c.id === id);
-    const updates: Parameters<typeof onUpdate>[1] = {
+    onUpdate(id, {
       상태: '완료',
       완료일시: new Date().toISOString(),
-    };
-    if (target?.퇴실상태 === '퇴실완료') {
-      updates.퇴실상태 = '완료';
-    }
-    onUpdate(id, updates);
+    });
   };
 
   // 우선처리 토글
@@ -806,10 +802,7 @@ export function CleaningPage({ complaints, onUpdate, onImageClick, currentUserId
                                       e.stopPropagation();
                                       onUpdate(complaint.id, {
                                         상태: status,
-                                        ...(status === '완료' ? {
-                                          완료일시: new Date().toISOString(),
-                                          ...(complaint.퇴실상태 === '퇴실완료' ? { 퇴실상태: '완료' } : {})
-                                        } : {})
+                                        ...(status === '완료' ? { 완료일시: new Date().toISOString() } : {})
                                       });
                                     }}
                                     className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
